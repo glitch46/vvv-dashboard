@@ -4,6 +4,9 @@ on:
   schedule:
     - cron: '0 */12 * * *'
 
+permissions:
+  contents: write
+
 jobs:
   refresh:
     runs-on: ubuntu-latest
@@ -23,7 +26,6 @@ API_KEY=os.environ['DUNE_API_KEY']
 headers={'X-DUNE-API-KEY':API_KEY, 'Content-Type':'application/json'}
 svvv='0x321b7ff75154472B18EDb199033fF4D116F340Ff'
 vvv='0xacfe6019ed1a7dc6f7b508c02d1b04ec88cc21bf'
-pool='0x5d05eF25a5f933271E1f0FDc02dC3EaB6a4eA687'
 method='0xae5ac921'
 
 sql1=f"""
@@ -79,7 +81,6 @@ price AS (
   FROM dex.trades
   WHERE
     blockchain = 'base'
-    AND project_contract_address = {pool}
     AND (token_bought_address = {vvv} OR token_sold_address = {vvv})
     AND block_time >= now() - interval '30' day
   GROUP BY 1
