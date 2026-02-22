@@ -136,6 +136,10 @@
         }
       });
 
+      const priceNums = price.filter(v => v !== null && v !== undefined);
+      const priceMin = priceNums.length ? Math.min(...priceNums) : 0;
+      const priceMax = priceNums.length ? Math.max(...priceNums) : 1;
+
       new Chart(document.getElementById('initUnlockChart'), {
         type: 'line',
         data: { labels, datasets: [
@@ -147,7 +151,14 @@
           scales: {
             x: { ticks: { color: '#a8b8d8', maxRotation: 0, autoSkip: true, maxTicksLimit: 10 } },
             y: { position: 'left', ticks: { color: '#a8b8d8' }, title: { display: true, text: 'Unlocks', color: '#a8b8d8' } },
-            y1: { position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#a8b8d8' }, title: { display: true, text: 'Price (USD)', color: '#a8b8d8' } }
+            y1: {
+              position: 'right',
+              grid: { drawOnChartArea: false },
+              ticks: { color: '#a8b8d8', callback: (v) => '$' + Number(v).toFixed(2) },
+              title: { display: true, text: 'Price (USD)', color: '#a8b8d8' },
+              suggestedMin: priceMin * 0.9,
+              suggestedMax: priceMax * 1.1
+            }
           }
         }
       });
