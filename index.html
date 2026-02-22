@@ -77,7 +77,13 @@
       const queue = daily.map(d => Number(d.queue_amount || 0));
       const initiated = daily.map(d => Number(d.initiated_amount || 0));
       const unlocks = daily.map(d => Number(d.unlock_amount || 0));
-      const price = daily.map(d => d.vvv_price_usd === null || d.vvv_price_usd === undefined ? null : Number(d.vvv_price_usd));
+      const rawPrice = daily.map(d => d.vvv_price_usd === null || d.vvv_price_usd === undefined ? null : Number(d.vvv_price_usd));
+      const price = [];
+      let last = null;
+      for (const p of rawPrice) {
+        if (p !== null && !Number.isNaN(p)) last = p;
+        price.push(last);
+      }
 
       const currentQueue = Number(summary.current_queue_amount || 0);
       const avgQueue = Number(summary.avg_queue_amount_30d || 0);
@@ -134,7 +140,7 @@
         type: 'line',
         data: { labels, datasets: [
           { label: 'Unlocks', data: unlocks, borderColor: '#ffd18a', backgroundColor: 'rgba(255,209,138,0.15)', fill: true, tension: 0.2, yAxisID: 'y' },
-          { label: 'VVV Price (USD)', data: price, borderColor: '#6ea8ff', backgroundColor: 'rgba(110,168,255,0.10)', fill: false, tension: 0.2, yAxisID: 'y1' }
+          { label: 'VVV Price (USD)', data: price, borderColor: '#6ea8ff', backgroundColor: 'rgba(110,168,255,0.10)', fill: false, tension: 0.2, yAxisID: 'y1', borderWidth: 2, pointRadius: 2 }
         ]},
         options: {
           plugins: { legend: { labels: { color: '#eef3ff' } } },
