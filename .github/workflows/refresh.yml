@@ -19,13 +19,14 @@ jobs:
       - name: Fetch data from Dune
         env:
           DUNE_API_KEY: ${{ secrets.DUNE_API_KEY }}
+          COINGECKO_API_KEY: ${{ secrets.COINGECKO_API_KEY }}
         run: |
           python - <<'PY'
-import json, urllib.request, time, os
+import json, urllib.request, time, os, datetime
 API_KEY=os.environ['DUNE_API_KEY']
+CG_KEY=os.environ.get('COINGECKO_API_KEY')
 headers={'X-DUNE-API-KEY':API_KEY, 'Content-Type':'application/json'}
 svvv='0x321b7ff75154472B18EDb199033fF4D116F340Ff'
-vvv='0xacfe6019ed1a7dc6f7b508c02d1b04ec88cc21bf'
 method='0xae5ac921'
 
 sql1=f"""
@@ -69,34 +70,17 @@ queue AS (
     ON t.block_time > CAST(d.day AS timestamp) - interval '7' day
    AND t.block_time <= CAST(d.day AS timestamp) + interval '1' day
   GROUP BY 1
-),
-
-price AS (
-  SELECT
-    CAST(date_trunc('day', block_time) AS date) AS day,
-    SUM(amount_usd) / NULLIF(SUM(CASE
-      WHEN token_bought_address = {vvv} THEN token_bought_amount
-      WHEN token_sold_address = {vvv} THEN token_sold_amount
-      ELSE 0 END), 0) AS vvv_price_usd
-  FROM dex.trades
-  WHERE
-    blockchain = 'base'
-    AND (token_bought_address = {vvv} OR token_sold_address = {vvv})
-    AND block_time >= now() - interval '30' day
-  GROUP BY 1
 )
 
 SELECT
   d.day,
   COALESCE(i.initiated_amount, 0) AS initiated_amount,
   COALESCE(u.unlock_amount, 0) AS unlock_amount,
-  COALESCE(q.queue_amount, 0) AS queue_amount,
-  p.vvv_price_usd
+  COALESCE(q.queue_amount, 0) AS queue_amount
 FROM _days d
 LEFT JOIN initiated i ON d.day = i.day
 LEFT JOIN unlocks u ON d.day = u.day
 LEFT JOIN queue q ON d.day = q.day
-LEFT JOIN price p ON d.day = p.day
 ORDER BY d.day;
 """
 
@@ -175,8 +159,31 @@ for r in (r1,r2):
 res1=results(r1['execution_id'])
 res2=results(r2['execution_id'])
 
+# Fetch CoinGecko price (venice-token) last 30 days
+price_rows = {}
+try:
+    if CG_KEY:
+        url = 'https://api.coingecko.com/api/v3/coins/venice-token/market_chart'
+        params = 'vs_currency=usd&days=30&interval=daily'
+        req = urllib.request.Request(url + '?' + params, headers={'x-cg-pro-api-key': CG_KEY})
+    else:
+        url = 'https://api.coingecko.com/api/v3/coins/venice-token/market_chart?vs_currency=usd&days=30&interval=daily'
+        req = urllib.request.Request(url)
+    with urllib.request.urlopen(req) as resp:
+        cg = json.loads(resp.read().decode('utf-8'))
+    for ts, price in cg.get('prices', []):
+        day = datetime.datetime.utcfromtimestamp(ts/1000).strftime('%Y-%m-%d')
+        price_rows[day] = price
+except Exception as e:
+    price_rows = {}
+
+# Merge price into daily rows
+rows = res1['result']['rows']
+for r in rows:
+    r['vvv_price_usd'] = price_rows.get(r['day'])
+
 os.makedirs('data', exist_ok=True)
-open('data/daily.json','w').write(json.dumps(res1['result']['rows'], indent=2, default=str))
+open('data/daily.json','w').write(json.dumps(rows, indent=2, default=str))
 open('data/summary.json','w').write(json.dumps(res2['result']['rows'], indent=2, default=str))
 PY
       - name: Commit data
