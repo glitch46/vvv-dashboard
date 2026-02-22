@@ -77,6 +77,7 @@
       const queue = daily.map(d => Number(d.queue_amount || 0));
       const initiated = daily.map(d => Number(d.initiated_amount || 0));
       const unlocks = daily.map(d => Number(d.unlock_amount || 0));
+      const price = daily.map(d => d.vvv_price_usd === null || d.vvv_price_usd === undefined ? null : Number(d.vvv_price_usd));
 
       const currentQueue = Number(summary.current_queue_amount || 0);
       const avgQueue = Number(summary.avg_queue_amount_30d || 0);
@@ -132,14 +133,15 @@
       new Chart(document.getElementById('initUnlockChart'), {
         type: 'line',
         data: { labels, datasets: [
-          { label: 'Initiated', data: initiated, borderColor: '#8be9b5', backgroundColor: 'rgba(139,233,181,0.15)', fill: true, tension: 0.2 },
-          { label: 'Unlocks', data: unlocks, borderColor: '#ffd18a', backgroundColor: 'rgba(255,209,138,0.15)', fill: true, tension: 0.2 }
+          { label: 'Unlocks', data: unlocks, borderColor: '#ffd18a', backgroundColor: 'rgba(255,209,138,0.15)', fill: true, tension: 0.2, yAxisID: 'y' },
+          { label: 'VVV Price (USD)', data: price, borderColor: '#6ea8ff', backgroundColor: 'rgba(110,168,255,0.10)', fill: false, tension: 0.2, yAxisID: 'y1' }
         ]},
         options: {
           plugins: { legend: { labels: { color: '#eef3ff' } } },
           scales: {
             x: { ticks: { color: '#a8b8d8', maxRotation: 0, autoSkip: true, maxTicksLimit: 10 } },
-            y: { ticks: { color: '#a8b8d8' } }
+            y: { position: 'left', ticks: { color: '#a8b8d8' }, title: { display: true, text: 'Unlocks', color: '#a8b8d8' } },
+            y1: { position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#a8b8d8' }, title: { display: true, text: 'Price (USD)', color: '#a8b8d8' } }
           }
         }
       });

@@ -22,6 +22,8 @@ import json, urllib.request, time, os
 API_KEY=os.environ['DUNE_API_KEY']
 headers={'X-DUNE-API-KEY':API_KEY, 'Content-Type':'application/json'}
 svvv='0x321b7ff75154472B18EDb199033fF4D116F340Ff'
+vvv='0xacfe6019ed1a7dc6f7b508c02d1b04ec88cc21bf'
+pool='0x5d05eF25a5f933271E1f0FDc02dC3EaB6a4eA687'
 method='0xae5ac921'
 
 sql1=f"""
@@ -65,17 +67,35 @@ queue AS (
     ON t.block_time > CAST(d.day AS timestamp) - interval '7' day
    AND t.block_time <= CAST(d.day AS timestamp) + interval '1' day
   GROUP BY 1
+),
+
+price AS (
+  SELECT
+    CAST(date_trunc('day', block_time) AS date) AS day,
+    SUM(amount_usd) / NULLIF(SUM(CASE
+      WHEN token_bought_address = {vvv} THEN token_bought_amount
+      WHEN token_sold_address = {vvv} THEN token_sold_amount
+      ELSE 0 END), 0) AS vvv_price_usd
+  FROM dex.trades
+  WHERE
+    blockchain = 'base'
+    AND project_contract_address = {pool}
+    AND (token_bought_address = {vvv} OR token_sold_address = {vvv})
+    AND block_time >= now() - interval '30' day
+  GROUP BY 1
 )
 
 SELECT
   d.day,
   COALESCE(i.initiated_amount, 0) AS initiated_amount,
   COALESCE(u.unlock_amount, 0) AS unlock_amount,
-  COALESCE(q.queue_amount, 0) AS queue_amount
+  COALESCE(q.queue_amount, 0) AS queue_amount,
+  p.vvv_price_usd
 FROM _days d
 LEFT JOIN initiated i ON d.day = i.day
 LEFT JOIN unlocks u ON d.day = u.day
 LEFT JOIN queue q ON d.day = q.day
+LEFT JOIN price p ON d.day = p.day
 ORDER BY d.day;
 """
 
