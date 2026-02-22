@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VVV Unstaking Queue Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0b0f1a;
+      --panel: #12192b;
+      --text: #e6eefc;
+      --muted: #9bb0d3;
+      --accent: #4aa3ff;
+      --accent2: #7ee787;
+      --accent3: #ffb347;
+      --danger: #ff6b6b;
+    }
+    body { margin:0; font-family: Inter, system-ui, sans-serif; background: var(--bg); color: var(--text); }
+    .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+    h1 { margin: 0 0 8px; font-size: 28px; }
+    .subtitle { color: var(--muted); margin-bottom: 24px; }
+    .grid { display: grid; gap: 16px; }
+    .kpis { grid-template-columns: repeat(4, minmax(0,1fr)); }
+    .panel { background: var(--panel); border-radius: 12px; padding: 16px; }
+    .kpi-title { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+    .kpi-value { font-size: 24px; margin-top: 6px; }
+    .kpi-delta { font-size: 12px; margin-top: 4px; }
+    .charts { grid-template-columns: 1fr; }
+    @media (max-width: 900px) { .kpis { grid-template-columns: repeat(2,1fr);} }
+    @media (max-width: 600px) { .kpis { grid-template-columns: 1fr;} }
+    .footer { color: var(--muted); font-size: 12px; margin-top: 18px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>VVV Unstaking Queue — 30 Day Story</h1>
+    <div class="subtitle">sVVV initiateUnstake(0xae5ac921) on Base. Cooldown = 7 days.</div>
+
+    <div class="grid kpis" id="kpis"></div>
+
+    <div class="grid charts" style="margin-top:16px;">
+      <div class="panel"><canvas id="queueChart"></canvas></div>
+      <div class="panel"><canvas id="initUnlockChart"></canvas></div>
+      <div class="panel"><canvas id="initChart"></canvas></div>
+    </div>
+
+    <div class="panel" style="margin-top:16px;">
+      <strong>Story:</strong> The cooldown queue reflects the sum of initiations inside the last 7 days. Unlocks shift forward by 7 days from initiation. The KPI delta compares the current queue against the 30‑day average to show whether pressure is rising or falling.
+    </div>
+
+    <div class="footer">Data refresh: GitHub Actions every 12 hours. Source: Dune API.</div>
+  </div>
+
+  <script>
+    async function loadJSON(path) {
+      const res = await fetch(path, { cache: 'no-cache' });
+      return res.json();
+    }
+
+    function fmt(n) {
+      if (n === null || n === undefined) return '0';
+      const abs = Math.abs(n);
+      if (abs >= 1e9) return (n/1e9).toFixed(2) + 'B';
+      if (abs >= 1e6) return (n/1e6).toFixed(2) + 'M';
+      if (abs >= 1e3) return (n/1e3).toFixed(2) + 'K';
+      return Number(n).toFixed(2);
+    }
+
+    (async () => {
+      const daily = await loadJSON('data/daily.json');
+      const summaryArr = await loadJSON('data/summary.json');
+      const summary = summaryArr[0] || {};
+
+      const labels = daily.map(d => d.day);
+      const queue = daily.map(d => Number(d.queue_amount || 0));
+      const initiated = daily.map(d => Number(d.initiated_amount || 0));
+      const unlocks = daily.map(d => Number(d.unlock_amount || 0));
+
+      const currentQueue = Number(summary.current_queue_amount || 0);
+      const avgQueue = Number(summary.avg_queue_amount_30d || 0);
+      const avgDailyInit = Number(summary.avg_daily_initiated_30d || 0);
+      const init7d = Number(summary.initiated_last_7d || 0);
+
+      const delta = avgQueue === 0 ? 0 : ((currentQueue - avgQueue) / avgQueue) * 100;
+      const deltaText = (delta >= 0 ? '+' : '') + delta.toFixed(1) + '% vs 30d avg';
+
+      const kpis = [
+        { title: 'Current Queue (7d)', value: fmt(currentQueue), sub: deltaText },
+        { title: '30d Avg Queue', value: fmt(avgQueue), sub: 'Baseline' },
+        { title: '30d Avg Daily Initiated', value: fmt(avgDailyInit), sub: 'Daily flow' },
+        { title: 'Initiated Last 7d', value: fmt(init7d), sub: 'Recent pressure' }
+      ];
+
+      const kpiContainer = document.getElementById('kpis');
+      kpis.forEach(k => {
+        const div = document.createElement('div');
+        div.className = 'panel';
+        div.innerHTML = `<div class="kpi-title">${k.title}</div><div class="kpi-value">${k.value}</div><div class="kpi-delta">${k.sub}</div>`;
+        kpiContainer.appendChild(div);
+      });
+
+      new Chart(document.getElementById('queueChart'), {
+        type: 'line',
+        data: { labels, datasets: [{ label: 'Cooldown Queue (7d)', data: queue, borderColor: '#4aa3ff', backgroundColor: 'rgba(74,163,255,0.15)', fill: true, tension: 0.2 }] },
+        options: { plugins: { legend: { labels: { color: '#e6eefc' } } }, scales: { x: { ticks: { color: '#9bb0d3' } }, y: { ticks: { color: '#9bb0d3' } } } }
+      });
+
+      new Chart(document.getElementById('initUnlockChart'), {
+        type: 'line',
+        data: { labels, datasets: [
+          { label: 'Initiated', data: initiated, borderColor: '#7ee787', backgroundColor: 'rgba(126,231,135,0.15)', fill: true, tension: 0.2 },
+          { label: 'Unlocks', data: unlocks, borderColor: '#ffb347', backgroundColor: 'rgba(255,179,71,0.15)', fill: true, tension: 0.2 }
+        ]},
+        options: { plugins: { legend: { labels: { color: '#e6eefc' } } }, scales: { x: { ticks: { color: '#9bb0d3' } }, y: { ticks: { color: '#9bb0d3' } } } }
+      });
+
+      new Chart(document.getElementById('initChart'), {
+        type: 'bar',
+        data: { labels, datasets: [{ label: 'Daily Initiate Unstake', data: initiated, backgroundColor: '#7ee787' }] },
+        options: { plugins: { legend: { labels: { color: '#e6eefc' } } }, scales: { x: { ticks: { color: '#9bb0d3' } }, y: { ticks: { color: '#9bb0d3' } } } }
+      });
+    })();
+  </script>
+</body>
+</html>
