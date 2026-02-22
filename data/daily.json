@@ -3,186 +3,217 @@
     "day": "2026-01-23",
     "initiated_amount": 107616.30923538892,
     "queue_amount": 107616.30923538891,
-    "unlock_amount": 0
+    "unlock_amount": 0,
+    "vvv_price_usd": null
   },
   {
     "day": "2026-01-24",
     "initiated_amount": 24353.66350180425,
     "queue_amount": 131969.97273719314,
-    "unlock_amount": 0
+    "unlock_amount": 0,
+    "vvv_price_usd": 3.101998405535477
   },
   {
     "day": "2026-01-25",
     "initiated_amount": 2347.8789486338706,
     "queue_amount": 134317.85168582705,
-    "unlock_amount": 0
+    "unlock_amount": 0,
+    "vvv_price_usd": 3.0019713232809555
   },
   {
     "day": "2026-01-26",
     "initiated_amount": 9933.00909327823,
     "queue_amount": 144250.8607791052,
-    "unlock_amount": 0
+    "unlock_amount": 0,
+    "vvv_price_usd": 2.9659820686623273
   },
   {
     "day": "2026-01-27",
     "initiated_amount": 144187.31879115955,
     "queue_amount": 288438.1795702648,
-    "unlock_amount": 0
+    "unlock_amount": 0,
+    "vvv_price_usd": 3.4549541625826454
   },
   {
     "day": "2026-01-28",
     "initiated_amount": 14350.478937564232,
     "queue_amount": 302788.65850782895,
-    "unlock_amount": 0
+    "unlock_amount": 0,
+    "vvv_price_usd": 3.1705206018112775
   },
   {
     "day": "2026-01-29",
     "initiated_amount": 306167.62925678544,
     "queue_amount": 608956.2877646144,
-    "unlock_amount": 0
+    "unlock_amount": 0,
+    "vvv_price_usd": 3.181027454707829
   },
   {
     "day": "2026-01-30",
     "initiated_amount": 3836.293964560789,
     "queue_amount": 612792.5817291753,
-    "unlock_amount": 107616.30923538892
+    "unlock_amount": 107616.30923538892,
+    "vvv_price_usd": 2.814474067020766
   },
   {
     "day": "2026-01-31",
     "initiated_amount": 42668.40820156339,
     "queue_amount": 547844.6806953498,
-    "unlock_amount": 24353.66350180425
+    "unlock_amount": 24353.66350180425,
+    "vvv_price_usd": 2.6360828094240794
   },
   {
     "day": "2026-02-01",
     "initiated_amount": 6218.471312959693,
     "queue_amount": 529709.488506505,
-    "unlock_amount": 2347.8789486338706
+    "unlock_amount": 2347.8789486338706,
+    "vvv_price_usd": 2.338008097919797
   },
   {
     "day": "2026-02-02",
     "initiated_amount": 80581.61260191428,
     "queue_amount": 607943.2221597855,
-    "unlock_amount": 9933.00909327823
+    "unlock_amount": 9933.00909327823,
+    "vvv_price_usd": 2.144492406685041
   },
   {
     "day": "2026-02-03",
     "initiated_amount": 748667.0905280607,
     "queue_amount": 1346677.3035945683,
-    "unlock_amount": 144187.31879115955
+    "unlock_amount": 144187.31879115955,
+    "vvv_price_usd": 2.1721663594354546
   },
   {
     "day": "2026-02-04",
     "initiated_amount": 18339.16902916363,
     "queue_amount": 1220829.153832572,
-    "unlock_amount": 14350.478937564232
+    "unlock_amount": 14350.478937564232,
+    "vvv_price_usd": 2.232660275197511
   },
   {
     "day": "2026-02-05",
     "initiated_amount": 34984.29192839284,
     "queue_amount": 1241462.9668234007,
-    "unlock_amount": 306167.62925678544
+    "unlock_amount": 306167.62925678544,
+    "vvv_price_usd": 2.085937612157194
   },
   {
     "day": "2026-02-06",
     "initiated_amount": 150729.5029152764,
     "queue_amount": 1086024.8404818918,
-    "unlock_amount": 3836.293964560789
+    "unlock_amount": 3836.293964560789,
+    "vvv_price_usd": 1.6749723964145697
   },
   {
     "day": "2026-02-07",
     "initiated_amount": 2317.8834713178685,
     "queue_amount": 1084506.4299886485,
-    "unlock_amount": 42668.4082015634
+    "unlock_amount": 42668.4082015634,
+    "vvv_price_usd": 1.9923004795937438
   },
   {
     "day": "2026-02-08",
     "initiated_amount": 495.71323722780113,
     "queue_amount": 1042333.7350243131,
-    "unlock_amount": 6218.471312959693
+    "unlock_amount": 6218.471312959693,
+    "vvv_price_usd": 1.906533052930111
   },
   {
     "day": "2026-02-09",
     "initiated_amount": 21234.437771738336,
     "queue_amount": 1057349.7014830918,
-    "unlock_amount": 80581.61260191428
+    "unlock_amount": 80581.61260191428,
+    "vvv_price_usd": 1.8230260399019182
   },
   {
     "day": "2026-02-10",
     "initiated_amount": 4003.364386032174,
     "queue_amount": 980771.4532672095,
-    "unlock_amount": 748667.0905280607
+    "unlock_amount": 748667.0905280607,
+    "vvv_price_usd": 1.8570798813212954
   },
   {
     "day": "2026-02-11",
     "initiated_amount": 139589.4468265498,
     "queue_amount": 371693.8095656989,
-    "unlock_amount": 18339.169029163626
+    "unlock_amount": 18339.169029163626,
+    "vvv_price_usd": 1.8228080787342422
   },
   {
     "day": "2026-02-12",
     "initiated_amount": 4439.615033409982,
     "queue_amount": 357794.25556994515,
-    "unlock_amount": 34984.29192839285
+    "unlock_amount": 34984.29192839285,
+    "vvv_price_usd": 1.7888255751406725
   },
   {
     "day": "2026-02-13",
     "initiated_amount": 13052.314694016835,
     "queue_amount": 335862.2783355692,
-    "unlock_amount": 150729.5029152764
+    "unlock_amount": 150729.5029152764,
+    "vvv_price_usd": 1.8189413147939792
   },
   {
     "day": "2026-02-14",
     "initiated_amount": 19474.17107595198,
     "queue_amount": 204606.94649624464,
-    "unlock_amount": 2317.8834713178685
+    "unlock_amount": 2317.8834713178685,
+    "vvv_price_usd": 2.906687916956092
   },
   {
     "day": "2026-02-15",
     "initiated_amount": 471343.1675685605,
     "queue_amount": 673632.2305934873,
-    "unlock_amount": 495.7132372278012
+    "unlock_amount": 495.7132372278012,
+    "vvv_price_usd": 3.1622194453484154
   },
   {
     "day": "2026-02-16",
     "initiated_amount": 160281.34654423827,
     "queue_amount": 833417.8639004979,
-    "unlock_amount": 21234.437771738336
+    "unlock_amount": 21234.437771738336,
+    "vvv_price_usd": 4.477822253291032
   },
   {
     "day": "2026-02-17",
     "initiated_amount": 41883.46441703102,
     "queue_amount": 854066.8905457907,
-    "unlock_amount": 4003.3643860321745
+    "unlock_amount": 4003.3643860321745,
+    "vvv_price_usd": 4.145282078368054
   },
   {
     "day": "2026-02-18",
     "initiated_amount": 23433.825092662613,
     "queue_amount": 873497.3512524212,
-    "unlock_amount": 139589.44682654977
+    "unlock_amount": 139589.44682654977,
+    "vvv_price_usd": 4.338562633484641
   },
   {
     "day": "2026-02-19",
     "initiated_amount": 4142.666532754283,
     "queue_amount": 738050.5709586259,
-    "unlock_amount": 4439.615033409982
+    "unlock_amount": 4439.615033409982,
+    "vvv_price_usd": 3.6308896016477505
   },
   {
     "day": "2026-02-20",
     "initiated_amount": 99460.9571075711,
     "queue_amount": 833071.9130327869,
-    "unlock_amount": 13052.314694016835
+    "unlock_amount": 13052.314694016835,
+    "vvv_price_usd": 3.73933445250086
   },
   {
     "day": "2026-02-21",
     "initiated_amount": 86435.0371390931,
     "queue_amount": 906454.6354778634,
-    "unlock_amount": 19474.171075951977
+    "unlock_amount": 19474.171075951977,
+    "vvv_price_usd": 4.453612208609782
   },
   {
     "day": "2026-02-22",
     "initiated_amount": 6737.059925387611,
     "queue_amount": 893717.524327299,
-    "unlock_amount": 471343.16756856046
+    "unlock_amount": 471343.16756856046,
+    "vvv_price_usd": 4.277324243962463
   }
 ]
