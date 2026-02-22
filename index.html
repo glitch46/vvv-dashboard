@@ -7,25 +7,26 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
     :root {
-      --bg: #0b0f1a;
-      --panel: #12192b;
-      --text: #e6eefc;
-      --muted: #9bb0d3;
-      --accent: #4aa3ff;
-      --accent2: #7ee787;
-      --accent3: #ffb347;
-      --danger: #ff6b6b;
+      --bg: #0f1220;
+      --panel: #151c2f;
+      --text: #eef3ff;
+      --muted: #a8b8d8;
+      --accent: #6ea8ff;
+      --accent2: #8be9b5;
+      --accent3: #ffd18a;
+      --accent4: #c3a6ff;
+      --danger: #ff7a7a;
     }
-    body { margin:0; font-family: Inter, system-ui, sans-serif; background: var(--bg); color: var(--text); }
-    .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
-    h1 { margin: 0 0 8px; font-size: 28px; }
-    .subtitle { color: var(--muted); margin-bottom: 24px; }
+    body { margin:0; font-family: Inter, system-ui, sans-serif; background: radial-gradient(1000px 600px at 10% -10%, #1a2340 0%, var(--bg) 60%); color: var(--text); }
+    .container { max-width: 1200px; margin: 0 auto; padding: 28px; }
+    h1 { margin: 0 0 8px; font-size: 30px; letter-spacing: .2px; }
+    .subtitle { color: var(--muted); margin-bottom: 22px; }
     .grid { display: grid; gap: 16px; }
     .kpis { grid-template-columns: repeat(4, minmax(0,1fr)); }
-    .panel { background: var(--panel); border-radius: 12px; padding: 16px; }
+    .panel { background: linear-gradient(180deg, #171f34 0%, #131a2c 100%); border-radius: 14px; padding: 16px; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
     .kpi-title { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
-    .kpi-value { font-size: 24px; margin-top: 6px; }
-    .kpi-delta { font-size: 12px; margin-top: 4px; }
+    .kpi-value { font-size: 26px; margin-top: 6px; }
+    .kpi-delta { font-size: 12px; margin-top: 4px; color: #cfe0ff; }
     .charts { grid-template-columns: 1fr; }
     @media (max-width: 900px) { .kpis { grid-template-columns: repeat(2,1fr);} }
     @media (max-width: 600px) { .kpis { grid-template-columns: 1fr;} }
@@ -35,7 +36,7 @@
 <body>
   <div class="container">
     <h1>VVV Unstaking Queue — 30 Day Story</h1>
-    <div class="subtitle">sVVV initiateUnstake(0xae5ac921) on Base. Cooldown = 7 days.</div>
+    <div class="subtitle">sVVV initiateUnstake(0xae5ac921) on Base. Cooldown = 7 days. Simple, human‑readable, and updated twice daily.</div>
 
     <div class="grid kpis" id="kpis"></div>
 
@@ -46,10 +47,10 @@
     </div>
 
     <div class="panel" style="margin-top:16px;">
-      <strong>Story:</strong> The cooldown queue reflects the sum of initiations inside the last 7 days. Unlocks shift forward by 7 days from initiation. The KPI delta compares the current queue against the 30‑day average to show whether pressure is rising or falling.
+      <strong>Story:</strong> Unlocks are just initiations shifted 7 days forward. The first chart shows daily unlocks plus the 30‑day baseline so you can see if today’s unlocks are heavy or light. Queue pressure is simply the last 7 days of initiations stacked together.
     </div>
 
-    <div class="footer">Data refresh: GitHub Actions every 12 hours. Source: Dune API.</div>
+    <div class="footer">Data refresh: every 12 hours. Source: Dune API.</div>
   </div>
 
   <script>
@@ -82,6 +83,8 @@
       const avgDailyInit = Number(summary.avg_daily_initiated_30d || 0);
       const init7d = Number(summary.initiated_last_7d || 0);
 
+      const avgUnlock = unlocks.reduce((a,b)=>a+b,0) / Math.max(unlocks.length,1);
+
       const delta = avgQueue === 0 ? 0 : ((currentQueue - avgQueue) / avgQueue) * 100;
       const deltaText = (delta >= 0 ? '+' : '') + delta.toFixed(1) + '% vs 30d avg';
 
@@ -100,25 +103,57 @@
         kpiContainer.appendChild(div);
       });
 
+      const labelsForward = [...labels, ...Array.from({length: 7}, (_, i) => {
+        const d = new Date(labels[labels.length-1]);
+        d.setDate(d.getDate() + (i+1));
+        return d.toISOString().slice(0,10);
+      })];
+      const unlocksForward = [...unlocks, ...Array(7).fill(null)];
+      const avgUnlockLine = labelsForward.map(() => avgUnlock);
+
       new Chart(document.getElementById('queueChart'), {
         type: 'line',
-        data: { labels, datasets: [{ label: 'Cooldown Queue (7d)', data: queue, borderColor: '#4aa3ff', backgroundColor: 'rgba(74,163,255,0.15)', fill: true, tension: 0.2 }] },
-        options: { plugins: { legend: { labels: { color: '#e6eefc' } } }, scales: { x: { ticks: { color: '#9bb0d3' } }, y: { ticks: { color: '#9bb0d3' } } } }
+        data: {
+          labels: labelsForward,
+          datasets: [
+            { label: 'Unlocks (Daily)', data: unlocksForward, borderColor: '#ffd18a', backgroundColor: 'rgba(255,209,138,0.15)', fill: true, tension: 0.2 },
+            { label: 'Avg Unlocks (30d)', data: avgUnlockLine, borderColor: '#c3a6ff', borderDash: [6,6], pointRadius: 0, tension: 0 }
+          ]
+        },
+        options: {
+          plugins: { legend: { labels: { color: '#eef3ff' } } },
+          scales: {
+            x: { ticks: { color: '#a8b8d8', maxRotation: 0, autoSkip: true, maxTicksLimit: 10 } },
+            y: { ticks: { color: '#a8b8d8' } }
+          }
+        }
       });
 
       new Chart(document.getElementById('initUnlockChart'), {
         type: 'line',
         data: { labels, datasets: [
-          { label: 'Initiated', data: initiated, borderColor: '#7ee787', backgroundColor: 'rgba(126,231,135,0.15)', fill: true, tension: 0.2 },
-          { label: 'Unlocks', data: unlocks, borderColor: '#ffb347', backgroundColor: 'rgba(255,179,71,0.15)', fill: true, tension: 0.2 }
+          { label: 'Initiated', data: initiated, borderColor: '#8be9b5', backgroundColor: 'rgba(139,233,181,0.15)', fill: true, tension: 0.2 },
+          { label: 'Unlocks', data: unlocks, borderColor: '#ffd18a', backgroundColor: 'rgba(255,209,138,0.15)', fill: true, tension: 0.2 }
         ]},
-        options: { plugins: { legend: { labels: { color: '#e6eefc' } } }, scales: { x: { ticks: { color: '#9bb0d3' } }, y: { ticks: { color: '#9bb0d3' } } } }
+        options: {
+          plugins: { legend: { labels: { color: '#eef3ff' } } },
+          scales: {
+            x: { ticks: { color: '#a8b8d8', maxRotation: 0, autoSkip: true, maxTicksLimit: 10 } },
+            y: { ticks: { color: '#a8b8d8' } }
+          }
+        }
       });
 
       new Chart(document.getElementById('initChart'), {
         type: 'bar',
-        data: { labels, datasets: [{ label: 'Daily Initiate Unstake', data: initiated, backgroundColor: '#7ee787' }] },
-        options: { plugins: { legend: { labels: { color: '#e6eefc' } } }, scales: { x: { ticks: { color: '#9bb0d3' } }, y: { ticks: { color: '#9bb0d3' } } } }
+        data: { labels, datasets: [{ label: 'Daily Initiate Unstake', data: initiated, backgroundColor: '#8be9b5' }] },
+        options: {
+          plugins: { legend: { labels: { color: '#eef3ff' } } },
+          scales: {
+            x: { ticks: { color: '#a8b8d8', maxRotation: 0, autoSkip: true, maxTicksLimit: 10 } },
+            y: { ticks: { color: '#a8b8d8' } }
+          }
+        }
       });
     })();
   </script>
