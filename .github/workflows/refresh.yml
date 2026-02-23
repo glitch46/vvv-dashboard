@@ -177,10 +177,44 @@ try:
 except Exception as e:
     price_rows = {}
 
-# Merge price into daily rows
+# Fetch daily trade volume (USD) from Dune
+vol_rows = {}
+try:
+    sqlv = f"""
+    SELECT CAST(date_trunc('day', block_time) AS date) AS day,
+           SUM(amount_usd) AS trade_volume_usd
+    FROM dex.trades
+    WHERE blockchain='base'
+      AND (token_bought_address = {svvv} OR token_sold_address = {svvv})
+      AND block_time >= now() - interval '30' day
+    GROUP BY 1
+    """
+    data=json.dumps({"sql":sqlv, "performance":"medium"}).encode('utf-8')
+    req=urllib.request.Request('https://api.dune.com/api/v1/sql/execute', data=data, headers=headers, method='POST')
+    with urllib.request.urlopen(req) as resp:
+        rv=json.loads(resp.read().decode('utf-8'))
+    exec_id=rv['execution_id']
+    for _ in range(60):
+        req=urllib.request.Request(f'https://api.dune.com/api/v1/execution/{exec_id}/status', headers={'X-DUNE-API-KEY':API_KEY})
+        with urllib.request.urlopen(req) as resp:
+            st=json.loads(resp.read().decode('utf-8'))
+        if st.get('state') in ('QUERY_STATE_COMPLETED','QUERY_STATE_FAILED','QUERY_STATE_CANCELLED'):
+            break
+        time.sleep(2)
+    if st.get('state')=='QUERY_STATE_COMPLETED':
+        req=urllib.request.Request(f'https://api.dune.com/api/v1/execution/{exec_id}/results', headers={'X-DUNE-API-KEY':API_KEY})
+        with urllib.request.urlopen(req) as resp:
+            resv=json.loads(resp.read().decode('utf-8'))
+        for r in resv.get('result',{}).get('rows',[]):
+            vol_rows[r['day']] = r.get('trade_volume_usd')
+except Exception:
+    vol_rows = {}
+
+# Merge price + volume into daily rows
 rows = res1['result']['rows']
 for r in rows:
     r['vvv_price_usd'] = price_rows.get(r['day'])
+    r['trade_volume_usd'] = vol_rows.get(r['day'])
 
 os.makedirs('data', exist_ok=True)
 open('data/daily.json','w').write(json.dumps(rows, indent=2, default=str))

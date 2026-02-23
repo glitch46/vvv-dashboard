@@ -45,6 +45,7 @@
       <div class="panel"><canvas id="queueChart"></canvas></div>
       <div class="panel"><canvas id="initUnlockChart"></canvas></div>
       <div class="panel"><canvas id="initChart"></canvas></div>
+      <div class="panel"><canvas id="unlockVolumePriceChart"></canvas></div>
     </div>
 
     <div class="panel" style="margin-top:16px;">
@@ -88,6 +89,14 @@
       for (const p of rawPrice) {
         if (p !== null && !Number.isNaN(p)) last = p;
         price.push(last);
+      }
+
+      const rawVol = daily.map(d => d.trade_volume_usd === null || d.trade_volume_usd === undefined ? null : Number(d.trade_volume_usd));
+      const tradeVol = [];
+      let vlast = null;
+      for (const v of rawVol) {
+        if (v !== null && !Number.isNaN(v)) vlast = v;
+        tradeVol.push(vlast);
       }
 
       const currentQueue = Number(summary.current_queue_amount || 0);
@@ -180,6 +189,29 @@
           scales: {
             x: { ticks: { color: axisColor, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 }, grid: { color: gridColor } },
             y: { ticks: { color: axisColor }, grid: { color: gridColor } }
+          }
+        }
+      });
+
+      // Unlocks + Trade Volume + Price (same day)
+      const volNums = tradeVol.filter(v => v !== null && v !== undefined);
+      const volMin = volNums.length ? Math.min(...volNums) : 0;
+      const volMax = volNums.length ? Math.max(...volNums) : 1;
+
+      new Chart(document.getElementById('unlockVolumePriceChart'), {
+        type: 'bar',
+        data: { labels, datasets: [
+          { label: 'Unlocks (Cooldown Ends)', data: unlocks, backgroundColor: 'rgba(34,211,238,0.45)', yAxisID: 'y' },
+          { label: 'Trade Volume (USD)', data: tradeVol, backgroundColor: 'rgba(59,130,246,0.45)', yAxisID: 'y1' },
+          { label: 'VVV Price (USD)', data: price, type: 'line', borderColor: '#22d3ee', backgroundColor: 'rgba(34,211,238,0.15)', yAxisID: 'y2', tension: 0.2, borderWidth: 2, pointRadius: 2 }
+        ]},
+        options: {
+          plugins: { legend: { labels: { color: legendColor } } },
+          scales: {
+            x: { ticks: { color: axisColor, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 }, grid: { color: gridColor } },
+            y: { position: 'left', ticks: { color: axisColor }, grid: { color: gridColor }, title: { display: true, text: 'Unlocks', color: axisColor } },
+            y1: { position: 'right', ticks: { color: axisColor, callback: (v) => '$' + Number(v).toFixed(0) }, grid: { drawOnChartArea: false }, title: { display: true, text: 'Trade Volume (USD)', color: axisColor }, suggestedMin: volMin * 0.9, suggestedMax: volMax * 1.1 },
+            y2: { position: 'right', ticks: { color: axisColor, callback: (v) => '$' + Number(v).toFixed(2) }, grid: { drawOnChartArea: false }, title: { display: true, text: 'Price (USD)', color: axisColor }, suggestedMin: priceMin * 0.9, suggestedMax: priceMax * 1.1 }
           }
         }
       });
