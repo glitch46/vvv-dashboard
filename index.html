@@ -35,8 +35,8 @@
 </head>
 <body>
   <div class="container">
-    <h1>VVV Unstaking Queue — 30 Day Story</h1>
-    <div class="subtitle">sVVV initiateUnstake(0xae5ac921) on Base. Cooldown = 7 days. Simple, human‑readable, and updated twice daily.</div>
+    <h1>VVV Unstaking Queue - 30 Day Story</h1>
+    <div class="subtitle">sVVV initiateUnstake on Base. 7-day cooldown before tokens become freely transferable. Updated every 12 hours.</div>
 
     <div class="grid kpis" id="kpis"></div>
 
@@ -47,7 +47,11 @@
     </div>
 
     <div class="panel" style="margin-top:16px;">
-      <strong>Story:</strong> Unlocks are just initiations shifted 7 days forward. The first chart shows daily unlocks plus the 30‑day baseline so you can see if today’s unlocks are heavy or light. Queue pressure is simply the last 7 days of initiations stacked together.
+      <strong>How to read this:</strong><br>
+      • <strong>Initiated</strong> = when a user called <code>initiateUnstake</code> (cooldown starts)<br>
+      • <strong>Unlock</strong> = 7 days after initiation (cooldown ends, tokens become transferable)<br>
+      • <strong>Queue</strong> = total sVVV currently in cooldown (sum of last 7 days of initiations)<br><br>
+      The unlock chart shows when tokens become freely sellable — spikes indicate potential sell pressure.
     </div>
 
     <div class="footer">Data refresh: every 12 hours. Source: Dune API.</div>
@@ -123,8 +127,8 @@
         data: {
           labels: labelsForward,
           datasets: [
-            { label: 'Unlocks (Daily)', data: unlocksForward, borderColor: '#ffd18a', backgroundColor: 'rgba(255,209,138,0.15)', fill: true, tension: 0.2 },
-            { label: 'Avg Unlocks (30d)', data: avgUnlockLine, borderColor: '#c3a6ff', borderDash: [6,6], pointRadius: 0, tension: 0 }
+            { label: 'Unlocks (Cooldown Ends)', data: unlocksForward, borderColor: '#ffd18a', backgroundColor: 'rgba(255,209,138,0.15)', fill: true, tension: 0.2 },
+            { label: 'Avg Daily Unlocks (30d)', data: avgUnlockLine, borderColor: '#c3a6ff', borderDash: [6,6], pointRadius: 0, tension: 0 }
           ]
         },
         options: {
@@ -143,7 +147,7 @@
       new Chart(document.getElementById('initUnlockChart'), {
         type: 'line',
         data: { labels, datasets: [
-          { label: 'Unlocks', data: unlocks, borderColor: '#ffd18a', backgroundColor: 'rgba(255,209,138,0.15)', fill: true, tension: 0.2, yAxisID: 'y' },
+          { label: 'Unlocks (Tokens Become Transferable)', data: unlocks, borderColor: '#ffd18a', backgroundColor: 'rgba(255,209,138,0.15)', fill: true, tension: 0.2, yAxisID: 'y' },
           { label: 'VVV Price (USD)', data: price, borderColor: '#6ea8ff', backgroundColor: 'rgba(110,168,255,0.10)', fill: false, tension: 0.2, yAxisID: 'y1', borderWidth: 2, pointRadius: 2 }
         ]},
         options: {
@@ -165,7 +169,7 @@
 
       new Chart(document.getElementById('initChart'), {
         type: 'bar',
-        data: { labels, datasets: [{ label: 'Daily Initiate Unstake', data: initiated, backgroundColor: '#8be9b5' }] },
+        data: { labels, datasets: [{ label: 'Initiated (Cooldown Starts)', data: initiated, backgroundColor: '#8be9b5' }] },
         options: {
           plugins: { legend: { labels: { color: '#eef3ff' } } },
           scales: {
