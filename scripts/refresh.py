@@ -4,8 +4,8 @@ import json, urllib.request, time, os, datetime
 API_KEY = os.environ['DUNE_API_KEY']
 CG_KEY = os.environ.get('COINGECKO_API_KEY')
 headers = {'X-DUNE-API-KEY': API_KEY, 'Content-Type': 'application/json'}
-svvv = '0x321b7ff75154472B18EDb199033fF4D116F340Ff'
-vvv = '0x7F69F77D99Ee63d97c76b1E0F19dFf7D477C4E4f'  # liquid VVV for DEX volume
+svvv = '0x321b7ff75154472B18EDb199033fF4D116F340Ff'  # sVVV for unstaking
+vvv = '0xACFE6019Ed1A7Dc6f7B508C02D1b04eC88cC21BF'   # liquid VVV for DEX volume
 method = '0xae5ac921'
 
 sql1 = f"""
