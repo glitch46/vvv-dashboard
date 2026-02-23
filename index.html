@@ -7,30 +7,31 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
     :root {
-      --bg: #0f1220;
-      --panel: #151c2f;
-      --text: #eef3ff;
-      --muted: #a8b8d8;
-      --accent: #6ea8ff;
-      --accent2: #8be9b5;
-      --accent3: #ffd18a;
-      --accent4: #c3a6ff;
-      --danger: #ff7a7a;
+      --bg: #0b0f18;
+      --panel: #111827;
+      --panel-2: #0f172a;
+      --text: #e6edf7;
+      --muted: #94a3b8;
+      --accent: #3b82f6;
+      --accent-2: #22d3ee;
+      --grid: #1f2937;
+      --border: #1e293b;
     }
-    body { margin:0; font-family: Inter, system-ui, sans-serif; background: radial-gradient(1000px 600px at 10% -10%, #1a2340 0%, var(--bg) 60%); color: var(--text); }
-    .container { max-width: 1200px; margin: 0 auto; padding: 28px; }
-    h1 { margin: 0 0 8px; font-size: 30px; letter-spacing: .2px; }
-    .subtitle { color: var(--muted); margin-bottom: 22px; }
+    body { margin:0; font-family: Inter, system-ui, sans-serif; background: var(--bg); color: var(--text); }
+    .container { max-width: 1200px; margin: 0 auto; padding: 32px; }
+    h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: .2px; font-weight: 600; }
+    .subtitle { color: var(--muted); margin-bottom: 24px; }
     .grid { display: grid; gap: 16px; }
     .kpis { grid-template-columns: repeat(4, minmax(0,1fr)); }
-    .panel { background: linear-gradient(180deg, #171f34 0%, #131a2c 100%); border-radius: 14px; padding: 16px; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
-    .kpi-title { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
-    .kpi-value { font-size: 26px; margin-top: 6px; }
-    .kpi-delta { font-size: 12px; margin-top: 4px; color: #cfe0ff; }
+    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px; box-shadow: none; }
+    .kpi-title { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+    .kpi-value { font-size: 26px; margin-top: 6px; font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .kpi-delta { font-size: 12px; margin-top: 4px; color: var(--accent-2); }
     .charts { grid-template-columns: 1fr; }
     @media (max-width: 900px) { .kpis { grid-template-columns: repeat(2,1fr);} }
     @media (max-width: 600px) { .kpis { grid-template-columns: 1fr;} }
     .footer { color: var(--muted); font-size: 12px; margin-top: 18px; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
   </style>
 </head>
 <body>
@@ -54,7 +55,7 @@
       The unlock chart shows when tokens become freely sellable — spikes indicate potential sell pressure.
     </div>
 
-    <div class="footer">Data refresh: every 12 hours. Source: Dune API.</div>
+    <div class="footer">Data refresh: every 12 hours. Source: Dune API. Public dashboard uses static JSON with no embedded keys.</div>
   </div>
 
   <script>
@@ -122,20 +123,24 @@
       const unlocksForward = [...unlocks, ...Array(7).fill(null)];
       const avgUnlockLine = labelsForward.map(() => avgUnlock);
 
+      const axisColor = '#94a3b8';
+      const gridColor = '#1f2937';
+      const legendColor = '#e6edf7';
+
       new Chart(document.getElementById('queueChart'), {
         type: 'line',
         data: {
           labels: labelsForward,
           datasets: [
-            { label: 'Unlocks (Cooldown Ends)', data: unlocksForward, borderColor: '#ffd18a', backgroundColor: 'rgba(255,209,138,0.15)', fill: true, tension: 0.2 },
-            { label: 'Avg Daily Unlocks (30d)', data: avgUnlockLine, borderColor: '#c3a6ff', borderDash: [6,6], pointRadius: 0, tension: 0 }
+            { label: 'Unlocks (Cooldown Ends)', data: unlocksForward, borderColor: '#22d3ee', backgroundColor: 'rgba(34,211,238,0.12)', fill: true, tension: 0.2 },
+            { label: 'Avg Daily Unlocks (30d)', data: avgUnlockLine, borderColor: '#3b82f6', borderDash: [6,6], pointRadius: 0, tension: 0 }
           ]
         },
         options: {
-          plugins: { legend: { labels: { color: '#eef3ff' } } },
+          plugins: { legend: { labels: { color: legendColor } } },
           scales: {
-            x: { ticks: { color: '#a8b8d8', maxRotation: 0, autoSkip: true, maxTicksLimit: 10 } },
-            y: { ticks: { color: '#a8b8d8' } }
+            x: { ticks: { color: axisColor, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 }, grid: { color: gridColor } },
+            y: { ticks: { color: axisColor }, grid: { color: gridColor } }
           }
         }
       });
@@ -147,19 +152,19 @@
       new Chart(document.getElementById('initUnlockChart'), {
         type: 'line',
         data: { labels, datasets: [
-          { label: 'Unlocks (Tokens Become Transferable)', data: unlocks, borderColor: '#ffd18a', backgroundColor: 'rgba(255,209,138,0.15)', fill: true, tension: 0.2, yAxisID: 'y' },
-          { label: 'VVV Price (USD)', data: price, borderColor: '#6ea8ff', backgroundColor: 'rgba(110,168,255,0.10)', fill: false, tension: 0.2, yAxisID: 'y1', borderWidth: 2, pointRadius: 2 }
+          { label: 'Unlocks (Tokens Become Transferable)', data: unlocks, borderColor: '#22d3ee', backgroundColor: 'rgba(34,211,238,0.12)', fill: true, tension: 0.2, yAxisID: 'y' },
+          { label: 'VVV Price (USD)', data: price, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.10)', fill: false, tension: 0.2, yAxisID: 'y1', borderWidth: 2, pointRadius: 2 }
         ]},
         options: {
-          plugins: { legend: { labels: { color: '#eef3ff' } } },
+          plugins: { legend: { labels: { color: legendColor } } },
           scales: {
-            x: { ticks: { color: '#a8b8d8', maxRotation: 0, autoSkip: true, maxTicksLimit: 10 } },
-            y: { position: 'left', ticks: { color: '#a8b8d8' }, title: { display: true, text: 'Unlocks', color: '#a8b8d8' } },
+            x: { ticks: { color: axisColor, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 }, grid: { color: gridColor } },
+            y: { position: 'left', ticks: { color: axisColor }, grid: { color: gridColor }, title: { display: true, text: 'Unlocks', color: axisColor } },
             y1: {
               position: 'right',
               grid: { drawOnChartArea: false },
-              ticks: { color: '#a8b8d8', callback: (v) => '$' + Number(v).toFixed(2) },
-              title: { display: true, text: 'Price (USD)', color: '#a8b8d8' },
+              ticks: { color: axisColor, callback: (v) => '$' + Number(v).toFixed(2) },
+              title: { display: true, text: 'Price (USD)', color: axisColor },
               suggestedMin: priceMin * 0.9,
               suggestedMax: priceMax * 1.1
             }
@@ -169,12 +174,12 @@
 
       new Chart(document.getElementById('initChart'), {
         type: 'bar',
-        data: { labels, datasets: [{ label: 'Initiated (Cooldown Starts)', data: initiated, backgroundColor: '#8be9b5' }] },
+        data: { labels, datasets: [{ label: 'Initiated (Cooldown Starts)', data: initiated, backgroundColor: '#3b82f6' }] },
         options: {
-          plugins: { legend: { labels: { color: '#eef3ff' } } },
+          plugins: { legend: { labels: { color: legendColor } } },
           scales: {
-            x: { ticks: { color: '#a8b8d8', maxRotation: 0, autoSkip: true, maxTicksLimit: 10 } },
-            y: { ticks: { color: '#a8b8d8' } }
+            x: { ticks: { color: axisColor, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 }, grid: { color: gridColor } },
+            y: { ticks: { color: axisColor }, grid: { color: gridColor } }
           }
         }
       });
