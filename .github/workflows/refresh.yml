@@ -174,7 +174,7 @@ try:
     for ts, price in cg.get('prices', []):
         day = datetime.datetime.utcfromtimestamp(ts/1000).strftime('%Y-%m-%d')
         price_rows[day] = price
-except Exception as e:
+except Exception:
     price_rows = {}
 
 # Fetch daily trade volume (USD) from Dune
