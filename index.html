@@ -29,7 +29,15 @@
     .kpi-delta { font-size: 12px; margin-top: 4px; color: var(--accent-2); }
     .charts { grid-template-columns: 1fr; }
     @media (max-width: 900px) { .kpis { grid-template-columns: repeat(2,1fr);} }
-    @media (max-width: 600px) { .kpis { grid-template-columns: 1fr;} }
+    @media (max-width: 600px) {
+      .container { padding: 20px; }
+      h1 { font-size: 22px; }
+      .subtitle { font-size: 13px; line-height: 1.4; }
+      .kpis { grid-template-columns: 1fr; }
+      .panel { padding: 12px; }
+      .kpi-value { font-size: 22px; }
+      canvas { max-height: 260px; }
+    }
     .footer { color: var(--muted); font-size: 12px; margin-top: 18px; }
     code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
   </style>
