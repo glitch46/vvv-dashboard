@@ -50,7 +50,6 @@
     <div class="grid kpis" id="kpis"></div>
 
     <div class="grid charts" style="margin-top:16px;">
-      <div class="panel"><canvas id="queueChart"></canvas></div>
       <div class="panel"><canvas id="initUnlockChart"></canvas></div>
       <div class="panel"><canvas id="initChart"></canvas></div>
       <div class="panel"><canvas id="unlockVolumePriceChart"></canvas></div>
@@ -132,45 +131,22 @@
         kpiContainer.appendChild(div);
       });
 
-      const labelsForward = [...labels, ...Array.from({length: 7}, (_, i) => {
-        const d = new Date(labels[labels.length-1]);
-        d.setDate(d.getDate() + (i+1));
-        return d.toISOString().slice(0,10);
-      })];
-      const unlocksForward = [...unlocks, ...Array(7).fill(null)];
-      const avgUnlockLine = labelsForward.map(() => avgUnlock);
-
       const axisColor = '#94a3b8';
       const gridColor = '#1f2937';
       const legendColor = '#e6edf7';
-
-      new Chart(document.getElementById('queueChart'), {
-        type: 'line',
-        data: {
-          labels: labelsForward,
-          datasets: [
-            { label: 'Unlocks (Cooldown Ends)', data: unlocksForward, borderColor: '#22d3ee', backgroundColor: 'rgba(34,211,238,0.12)', fill: true, tension: 0.2 },
-            { label: 'Avg Daily Unlocks (30d)', data: avgUnlockLine, borderColor: '#3b82f6', borderDash: [6,6], pointRadius: 0, tension: 0 }
-          ]
-        },
-        options: {
-          plugins: { legend: { labels: { color: legendColor } } },
-          scales: {
-            x: { ticks: { color: axisColor, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 }, grid: { color: gridColor } },
-            y: { ticks: { color: axisColor }, grid: { color: gridColor } }
-          }
-        }
-      });
 
       const priceNums = price.filter(v => v !== null && v !== undefined);
       const priceMin = priceNums.length ? Math.min(...priceNums) : 0;
       const priceMax = priceNums.length ? Math.max(...priceNums) : 1;
 
+      const avgUnlockLine = labels.map(() => avgUnlock);
+
       new Chart(document.getElementById('initUnlockChart'), {
         type: 'line',
         data: { labels, datasets: [
           { label: 'Unlocks (Tokens Become Transferable)', data: unlocks, borderColor: '#22d3ee', backgroundColor: 'rgba(34,211,238,0.12)', fill: true, tension: 0.2, yAxisID: 'y' },
-          { label: 'VVV Price (USD)', data: price, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.10)', fill: false, tension: 0.2, yAxisID: 'y1', borderWidth: 2, pointRadius: 2 }
+          { label: 'Avg Daily Unlocks (30d)', data: avgUnlockLine, borderColor: '#3b82f6', borderDash: [6,6], pointRadius: 0, tension: 0, yAxisID: 'y' },
+          { label: 'VVV Price (USD)', data: price, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.10)', fill: false, tension: 0.2, yAxisID: 'y1', borderWidth: 2, pointRadius: 2 }
         ]},
         options: {
           plugins: { legend: { labels: { color: legendColor } } },
