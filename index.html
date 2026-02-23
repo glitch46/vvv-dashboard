@@ -63,7 +63,7 @@
       The unlock chart shows when tokens become freely sellable — spikes indicate potential sell pressure.
     </div>
 
-    <div class="footer">Data refresh: every 12 hours. Source: Dune API. Public dashboard uses static JSON with no embedded keys.</div>
+    <div class="footer">Data refresh: every 12 hours. Sources: Dune (unstaking via sVVV), CoinGecko (price), Dune DEX trades (volume via liquid VVV). Public dashboard uses static JSON with no embedded keys.</div>
   </div>
 
   <script>
@@ -186,7 +186,7 @@
         type: 'bar',
         data: { labels, datasets: [
           { label: 'Unlocks (Cooldown Ends)', data: unlocks, backgroundColor: 'rgba(34,211,238,0.45)', yAxisID: 'y' },
-          { label: 'Trade Volume (USD)', data: tradeVol, backgroundColor: 'rgba(59,130,246,0.45)', yAxisID: 'y1' },
+          { label: 'DEX Trade Volume (USD) — Source: Dune', data: tradeVol, backgroundColor: 'rgba(59,130,246,0.45)', yAxisID: 'y1' },
           { label: 'VVV Price (USD)', data: price, type: 'line', borderColor: '#22d3ee', backgroundColor: 'rgba(34,211,238,0.15)', yAxisID: 'y2', tension: 0.2, borderWidth: 2, pointRadius: 2 }
         ]},
         options: {
@@ -194,7 +194,7 @@
           scales: {
             x: { ticks: { color: axisColor, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 }, grid: { color: gridColor } },
             y: { position: 'left', ticks: { color: axisColor }, grid: { color: gridColor }, title: { display: true, text: 'Unlocks', color: axisColor } },
-            y1: { position: 'right', ticks: { color: axisColor, callback: (v) => '$' + Number(v).toFixed(0) }, grid: { drawOnChartArea: false }, title: { display: true, text: 'Trade Volume (USD)', color: axisColor }, suggestedMin: volMin * 0.9, suggestedMax: volMax * 1.1 },
+            y1: { position: 'right', ticks: { color: axisColor, callback: (v) => { const n = Number(v); if (n >= 1e6) return '$' + (n/1e6).toFixed(1) + 'M'; if (n >= 1e3) return '$' + (n/1e3).toFixed(1) + 'K'; return '$' + n.toFixed(0); } }, grid: { drawOnChartArea: false }, title: { display: true, text: 'DEX Volume', color: axisColor }, suggestedMin: volMin * 0.9, suggestedMax: volMax * 1.1 },
             y2: { position: 'right', ticks: { color: axisColor, callback: (v) => '$' + Number(v).toFixed(2) }, grid: { drawOnChartArea: false }, title: { display: true, text: 'Price (USD)', color: axisColor }, suggestedMin: priceMin * 0.9, suggestedMax: priceMax * 1.1 }
           }
         }
