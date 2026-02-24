@@ -28,6 +28,16 @@
     .kpi-value { font-size: 26px; margin-top: 6px; font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
     .kpi-delta { font-size: 12px; margin-top: 4px; color: var(--accent-2); }
     .charts { grid-template-columns: 1fr; }
+    .forecast-list { list-style: none; margin: 0; padding: 0; }
+    .forecast-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .forecast-item:last-child { border-bottom: none; }
+    .forecast-date { color: var(--muted); font-size: 13px; }
+    .forecast-amount { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 16px; font-weight: 600; }
+    .forecast-change { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 13px; margin-left: 12px; }
+    .forecast-change.positive { color: var(--accent-2); }
+    .forecast-change.negative { color: #ef4444; }
+    .forecast-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+    .forecast-title { font-size: 14px; font-weight: 600; }
     @media (max-width: 900px) { .kpis { grid-template-columns: repeat(2,1fr);} }
     @media (max-width: 600px) {
       .container { padding: 20px; }
@@ -52,6 +62,13 @@
     <div class="grid charts" style="margin-top:16px;">
       <div class="panel"><canvas id="initUnlockChart"></canvas></div>
       <div class="panel"><canvas id="initChart"></canvas></div>
+      <div class="panel" id="forecastPanel">
+        <div class="forecast-header">
+          <span class="forecast-title">Upcoming Unlocks (Next 7 Days)</span>
+          <span style="color: var(--muted); font-size: 12px;">Tokens becoming freely tradable</span>
+        </div>
+        <ul class="forecast-list" id="forecastList"></ul>
+      </div>
     </div>
 
     <div class="panel" style="margin-top:16px;">
@@ -166,6 +183,70 @@
             y: { ticks: { color: axisColor }, grid: { color: gridColor } }
           }
         }
+      });
+
+      // Generate 7-day unlock forecast based on initiations 7 days ago
+      const today = new Date();
+      const forecast = [];
+      for (let i = 0; i < 7; i++) {
+        const unlockDate = new Date(today);
+        unlockDate.setDate(today.getDate() + i);
+        const unlockDateStr = unlockDate.toISOString().slice(0, 10);
+        
+        // Find initiations from 7 days prior to this unlock date
+        const initDate = new Date(unlockDate);
+        initDate.setDate(unlockDate.getDate() - 7);
+        const initDateStr = initDate.toISOString().slice(0, 10);
+        
+        const initData = daily.find(d => d.day === initDateStr);
+        const amount = initData ? Number(initData.initiated_amount || 0) : 0;
+        
+        forecast.push({ date: unlockDateStr, amount: amount });
+      }
+
+      // Render forecast list with % change
+      const forecastList = document.getElementById('forecastList');
+      forecast.forEach((item, idx) => {
+        const li = document.createElement('li');
+        li.className = 'forecast-item';
+        
+        const dateEl = document.createElement('span');
+        dateEl.className = 'forecast-date';
+        const dateObj = new Date(item.date);
+        const dateFmt = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        dateEl.textContent = idx === 0 ? `Today — ${dateFmt}` : dateFmt;
+        
+        const rightEl = document.createElement('div');
+        rightEl.style.display = 'flex';
+        rightEl.style.alignItems = 'center';
+        
+        const amountEl = document.createElement('span');
+        amountEl.className = 'forecast-amount';
+        amountEl.textContent = fmt(item.amount) + ' VVV';
+        
+        rightEl.appendChild(amountEl);
+        
+        if (idx > 0) {
+          const prevAmount = forecast[idx - 1].amount;
+          const changeEl = document.createElement('span');
+          changeEl.className = 'forecast-change';
+          if (prevAmount > 0) {
+            const pct = ((item.amount - prevAmount) / prevAmount) * 100;
+            const sign = pct >= 0 ? '+' : '';
+            changeEl.textContent = `${sign}${pct.toFixed(1)}%`;
+            changeEl.classList.add(pct >= 0 ? 'positive' : 'negative');
+          } else if (item.amount > 0) {
+            changeEl.textContent = 'New';
+            changeEl.classList.add('positive');
+          } else {
+            changeEl.textContent = '—';
+          }
+          rightEl.appendChild(changeEl);
+        }
+        
+        li.appendChild(dateEl);
+        li.appendChild(rightEl);
+        forecastList.appendChild(li);
       });
 
     })();
