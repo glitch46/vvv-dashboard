@@ -157,7 +157,9 @@ try:
     for ts, price in cg.get('prices', []):
         day = datetime.datetime.utcfromtimestamp(ts / 1000).strftime('%Y-%m-%d')
         price_rows[day] = price
-except Exception:
+    print(f"Fetched {len(price_rows)} price points from CoinGecko")
+except Exception as e:
+    print(f"ERROR fetching CoinGecko price: {e}")
     price_rows = {}
 
 # Fetch daily trade volume (USD) from Dune
