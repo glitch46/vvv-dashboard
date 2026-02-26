@@ -4,8 +4,9 @@ import json, urllib.request, time, os, datetime
 API_KEY = os.environ['DUNE_API_KEY']
 CG_KEY = os.environ.get('COINGECKO_API_KEY')
 headers = {'X-DUNE-API-KEY': API_KEY, 'Content-Type': 'application/json'}
-svvv = '0x321b7ff75154472B18EDb199033fF4D116F340Ff'  # sVVV for unstaking
-vvv = '0xACFE6019Ed1A7Dc6f7B508C02D1b04eC88cC21BF'   # liquid VVV for DEX volume
+svvv = '0x321b7ff75154472B18EDb199033fF4D116F340Ff'
+vvv = '0xACFE6019Ed1A7Dc6f7B508C02D1b04eC88cC21BF'
+zero = '0x0000000000000000000000000000000000000000'
 method = '0xae5ac921'
 
 sql1 = f"""
@@ -107,6 +108,76 @@ SELECT
   (SELECT COALESCE(SUM(amount),0) FROM tx WHERE block_time > now() - interval '7' day) AS initiated_last_7d
 """
 
+sql3 = f"""
+WITH _days AS (
+  SELECT day
+  FROM unnest(sequence(
+    CAST(date_trunc('day', now() - interval '30' day) AS date),
+    CAST(date_trunc('day', now()) AS date),
+    interval '1' day
+  )) AS t(day)
+),
+
+burns AS (
+  SELECT 
+    CAST(date_trunc('day', block_time) AS date) AS day,
+    SUM(bytearray_to_uint256(bytearray_substring(data, 133, 32)) / 1e18) AS daily_burned
+  FROM base.transactions
+  WHERE "to" = {zero}
+    AND "contract" = {vvv}
+    AND block_time >= now() - interval '30' day
+  GROUP BY 1
+),
+
+cumulative_burns AS (
+  SELECT 
+    d.day,
+    COALESCE(SUM(b.daily_burned) OVER (ORDER BY d.day), 0) AS total_burned
+  FROM _days d
+  LEFT JOIN burns b ON d.day = b.day
+),
+
+svvv_supply AS (
+  SELECT 
+    CAST(date_trunc('day', block_time) AS date) AS day,
+    SUM(bytearray_to_uint256(bytearray_substring(data, 133, 32)) / 1e18) AS daily_stake_in
+  FROM base.transactions
+  WHERE "to" = {svvv}
+    AND "from" != {zero}
+    AND block_time >= now() - interval '30' day
+  GROUP BY 1
+),
+
+svvv_unstake AS (
+  SELECT 
+    CAST(date_trunc('day', block_time) AS date) AS day,
+    SUM(bytearray_to_uint256(bytearray_substring(data, 5, 32)) / 1e18) AS daily_stake_out
+  FROM base.transactions
+  WHERE "contract" = {svvv}
+    AND bytearray_substring(data, 1, 4) = {method}
+    AND block_time >= now() - interval '30' day
+  GROUP BY 1
+)
+
+SELECT
+  d.day,
+  COALESCE(cb.total_burned, 0) AS total_burned_vvv,
+  COALESCE(si.daily_stake_in, 0) AS daily_stake_in,
+  COALESCE(so.daily_stake_out, 0) AS daily_stake_out
+FROM _days d
+LEFT JOIN cumulative_burns cb ON d.day = cb.day
+LEFT JOIN sVVV_supply si ON d.day = si.day
+LEFT JOIN sVVV_unstake so ON d.day = so.day
+ORDER BY d.day
+"""
+
+sql4 = f"""
+SELECT 
+  total_supply / 1e18 AS total_vvv_supply
+FROM base.tokens 
+WHERE contract_address = {vvv}
+"""
+
 
 def exec_sql(sql):
     data = json.dumps({"sql": sql, "performance": "medium"}).encode('utf-8')
@@ -116,6 +187,7 @@ def exec_sql(sql):
 
 
 def poll(eid):
+    st = {'state': None}
     for _ in range(60):
         req = urllib.request.Request(f'https://api.dune.com/api/v1/execution/{eid}/status', headers={'X-DUNE-API-KEY': API_KEY})
         with urllib.request.urlopen(req) as resp:
@@ -134,15 +206,19 @@ def results(eid):
 
 r1 = exec_sql(sql1)
 r2 = exec_sql(sql2)
-for r in (r1, r2):
+r3 = exec_sql(sql3)
+r4 = exec_sql(sql4)
+
+for r in (r1, r2, r3, r4):
     st = poll(r['execution_id'])
     if st['state'] != 'QUERY_STATE_COMPLETED':
         raise SystemExit(f"Query failed: {st}")
 
 res1 = results(r1['execution_id'])
 res2 = results(r2['execution_id'])
+res3 = results(r3['execution_id'])
+res4 = results(r4['execution_id'])
 
-# Fetch CoinGecko price (venice-token) last 30 days
 price_rows = {}
 try:
     if CG_KEY:
@@ -162,7 +238,6 @@ except Exception as e:
     print(f"ERROR fetching CoinGecko price: {e}")
     price_rows = {}
 
-# Fetch daily trade volume (USD) from Dune
 vol_rows = {}
 try:
     sqlv = f"""
@@ -179,6 +254,7 @@ try:
     with urllib.request.urlopen(req) as resp:
         rv = json.loads(resp.read().decode('utf-8'))
     exec_id = rv['execution_id']
+    st = {'state': None}
     for _ in range(60):
         req = urllib.request.Request(f'https://api.dune.com/api/v1/execution/{exec_id}/status', headers={'X-DUNE-API-KEY': API_KEY})
         with urllib.request.urlopen(req) as resp:
@@ -192,19 +268,32 @@ try:
             resv = json.loads(resp.read().decode('utf-8'))
         for r in resv.get('result', {}).get('rows', []):
             vol_rows[r['day']] = r.get('trade_volume_usd')
-except Exception:
+except Exception as e:
+    print(f"ERROR fetching volume: {e}")
     vol_rows = {}
 
-# Merge price + volume into daily rows
 rows = res1['result']['rows']
 for r in rows:
     r['vvv_price_usd'] = price_rows.get(r['day'])
     r['trade_volume_usd'] = vol_rows.get(r['day'])
+
+total_vvv_supply = res4['result']['rows'][0]['total_vvv_supply'] if res4['result']['rows'] else 0
+
+staking_rows = res3['result']['rows']
+
+cumulative_staked = 0
+for i, r in enumerate(staking_rows):
+    cumulative_staked += r.get('daily_stake_in', 0) - r.get('daily_stake_out', 0)
+    r['cumulative_staked'] = max(0, cumulative_staked)
+    r['total_vvv_supply'] = total_vvv_supply
+    r['liquid_vvv'] = max(0, total_vvv_supply - r['cumulative_staked'] - r.get('total_burned_vvv', 0))
 
 os.makedirs('data', exist_ok=True)
 with open('data/daily.json', 'w') as f:
     f.write(json.dumps(rows, indent=2, default=str))
 with open('data/summary.json', 'w') as f:
     f.write(json.dumps(res2['result']['rows'], indent=2, default=str))
+with open('data/staking.json', 'w') as f:
+    f.write(json.dumps(staking_rows, indent=2, default=str))
 
 print("Data refreshed successfully")
