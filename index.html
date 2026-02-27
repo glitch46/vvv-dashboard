@@ -69,7 +69,6 @@
         </div>
         <ul class="forecast-list" id="forecastList"></ul>
       </div>
-      <div class="panel"><canvas id="supplyChart"></canvas></div>
     </div>
 
     <div class="panel" style="margin-top:16px;">
@@ -80,7 +79,7 @@
       The unlock chart shows when tokens become freely sellable — spikes indicate potential sell pressure.
     </div>
 
-    <div class="footer">Data refresh: every 12 hours. Sources: Dune (unstaking via sVVV), CoinGecko (price), Basescan (supply + balances). Public dashboard uses static JSON with no embedded keys.</div>
+    <div class="footer">Data refresh: every 12 hours. Sources: Dune (unstaking via sVVV), CoinGecko (price). Public dashboard uses static JSON with no embedded keys.</div>
   </div>
 
   <script>
@@ -102,8 +101,6 @@
       const daily = await loadJSON('data/daily.json');
       const summaryArr = await loadJSON('data/summary.json');
       const summary = summaryArr[0] || {};
-      const supplyArr = await loadJSON('data/supply.json');
-      const supply = supplyArr[0] || {};
 
       const labels = daily.map(d => d.day);
       const queue = daily.map(d => Number(d.queue_amount || 0));
@@ -151,47 +148,6 @@
       const priceMax = priceNums.length ? Math.max(...priceNums) : 1;
 
       const avgUnlockLine = labels.map(() => avgUnlock);
-
-      const fallbackSupply = {
-        total_supply: 78.78e6,
-        locked_supply: 7.87e6,
-        staked_supply: 31.13e6,
-        circ_supply: 44.21e6,
-        burned_supply: (78.78e6 * 42.75) / 100
-      };
-      const totalSupply = Number(supply.total_supply || fallbackSupply.total_supply);
-      const lockedSupply = Number(supply.locked_supply || fallbackSupply.locked_supply);
-      const stakedSupply = Number(supply.staked_supply || fallbackSupply.staked_supply);
-      const circSupply = Number(supply.circ_supply || fallbackSupply.circ_supply);
-      const burnedSupply = Number(supply.burned_supply || fallbackSupply.burned_supply);
-
-      new Chart(document.getElementById('supplyChart'), {
-        type: 'pie',
-        data: {
-          labels: ['Locked', 'Staked', 'Circulating', 'Burned'],
-          datasets: [{
-            data: [lockedSupply, stakedSupply, circSupply, burnedSupply],
-            backgroundColor: ['#c4b290', '#8da3bd', '#8fb3b8', '#475569'],
-            borderColor: '#0f172a',
-            borderWidth: 2
-          }]
-        },
-        options: {
-          plugins: {
-            legend: { labels: { color: legendColor } },
-            title: { display: true, text: 'VVV Token Supply (Total 78.78M, Burned 42.75%)', color: legendColor, font: { size: 14 } },
-            tooltip: {
-              callbacks: {
-                label: (ctx) => {
-                  const value = ctx.parsed || 0;
-                  const pct = totalSupply ? (value / totalSupply) * 100 : 0;
-                  return `${ctx.label}: ${fmt(value)} (${pct.toFixed(2)}%)`;
-                }
-              }
-            }
-          }
-        }
-      });
 
       new Chart(document.getElementById('initUnlockChart'), {
         type: 'line',
