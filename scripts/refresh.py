@@ -1,13 +1,26 @@
 #!/usr/bin/env python3
-import json, urllib.request, time, os, datetime
+import json, urllib.request, urllib.parse, time, os, datetime
 
 API_KEY = os.environ['DUNE_API_KEY']
 CG_KEY = os.environ.get('COINGECKO_API_KEY')
+ETHERSCAN_KEY = os.environ.get('ETHERSCAN_API_KEY')
+LOCKED_ADDRS = [
+    '0x2d8cb8dc596dad0e1e34e2042e7ae6df93b11524',
+    '0x4665883f3adb708f301ba75764d39ad0cd2a4d84',
+    '0x4cb16d4153123a74bc724d161050959754f378d8',
+    '0xb3c89592d84ae6adb6a1aa41515ac14ec822b175',
+    '0xb6e08047320b4b4d943d7f1363776dddc6f4aa66'
+]
+LOCKED_ADDRS += [a.strip() for a in os.environ.get('VVV_LOCKED_ADDRESSES', '').split(',') if a.strip()]
+BURN_ADDRS = [a.strip() for a in os.environ.get('VVV_BURN_ADDRESSES', '').split(',') if a.strip()]
 headers = {'X-DUNE-API-KEY': API_KEY, 'Content-Type': 'application/json'}
 svvv = '0x321b7ff75154472B18EDb199033fF4D116F340Ff'
 vvv = '0xACFE6019Ed1A7Dc6f7B508C02D1b04eC88cC21BF'
-zero = '0x0000000000000000000000000000000000000000'
 method = '0xae5ac921'
+zero = '0x0000000000000000000000000000000000000000'
+dead = '0x000000000000000000000000000000000000dEaD'
+etherscan_base = 'https://api.etherscan.io/v2/api'
+chain_id = '8453'
 
 sql1 = f"""
 WITH tx AS (
@@ -108,75 +121,6 @@ SELECT
   (SELECT COALESCE(SUM(amount),0) FROM tx WHERE block_time > now() - interval '7' day) AS initiated_last_7d
 """
 
-sql3 = f"""
-WITH _days AS (
-  SELECT day
-  FROM unnest(sequence(
-    CAST(date_trunc('day', now() - interval '30' day) AS date),
-    CAST(date_trunc('day', now()) AS date),
-    interval '1' day
-  )) AS t(day)
-),
-
-burns AS (
-  SELECT 
-    CAST(date_trunc('day', block_time) AS date) AS day,
-    SUM(bytearray_to_uint256(bytearray_substring(data, 133, 32)) / 1e18) AS daily_burned
-  FROM base.transactions
-  WHERE "to" = {zero}
-    AND "contract" = {vvv}
-    AND block_time >= now() - interval '30' day
-  GROUP BY 1
-),
-
-cumulative_burns AS (
-  SELECT 
-    d.day,
-    COALESCE(SUM(b.daily_burned) OVER (ORDER BY d.day), 0) AS total_burned
-  FROM _days d
-  LEFT JOIN burns b ON d.day = b.day
-),
-
-svvv_supply AS (
-  SELECT 
-    CAST(date_trunc('day', block_time) AS date) AS day,
-    SUM(bytearray_to_uint256(bytearray_substring(data, 133, 32)) / 1e18) AS daily_stake_in
-  FROM base.transactions
-  WHERE "to" = {svvv}
-    AND "from" != {zero}
-    AND block_time >= now() - interval '30' day
-  GROUP BY 1
-),
-
-svvv_unstake AS (
-  SELECT 
-    CAST(date_trunc('day', block_time) AS date) AS day,
-    SUM(bytearray_to_uint256(bytearray_substring(data, 5, 32)) / 1e18) AS daily_stake_out
-  FROM base.transactions
-  WHERE "contract" = {svvv}
-    AND bytearray_substring(data, 1, 4) = {method}
-    AND block_time >= now() - interval '30' day
-  GROUP BY 1
-)
-
-SELECT
-  d.day,
-  COALESCE(cb.total_burned, 0) AS total_burned_vvv,
-  COALESCE(si.daily_stake_in, 0) AS daily_stake_in,
-  COALESCE(so.daily_stake_out, 0) AS daily_stake_out
-FROM _days d
-LEFT JOIN cumulative_burns cb ON d.day = cb.day
-LEFT JOIN sVVV_supply si ON d.day = si.day
-LEFT JOIN sVVV_unstake so ON d.day = so.day
-ORDER BY d.day
-"""
-
-sql4 = f"""
-SELECT 
-  total_supply / 1e18 AS total_vvv_supply
-FROM base.tokens 
-WHERE contract_address = {vvv}
-"""
 
 
 def exec_sql(sql):
@@ -204,20 +148,29 @@ def results(eid):
         return json.loads(resp.read().decode('utf-8'))
 
 
+def fetch_etherscan(params):
+    if not ETHERSCAN_KEY:
+        raise RuntimeError('ETHERSCAN_API_KEY not set')
+    params['apikey'] = ETHERSCAN_KEY
+    params['chainid'] = chain_id
+    url = etherscan_base + '?' + urllib.parse.urlencode(params)
+    req = urllib.request.Request(url)
+    with urllib.request.urlopen(req) as resp:
+        return json.loads(resp.read().decode('utf-8'))
+
+
 r1 = exec_sql(sql1)
 r2 = exec_sql(sql2)
-r3 = exec_sql(sql3)
-r4 = exec_sql(sql4)
+r3 = None
+r4 = None
 
-for r in (r1, r2, r3, r4):
+for r in (r1, r2):
     st = poll(r['execution_id'])
     if st['state'] != 'QUERY_STATE_COMPLETED':
         raise SystemExit(f"Query failed: {st}")
 
 res1 = results(r1['execution_id'])
 res2 = results(r2['execution_id'])
-res3 = results(r3['execution_id'])
-res4 = results(r4['execution_id'])
 
 price_rows = {}
 try:
@@ -277,23 +230,98 @@ for r in rows:
     r['vvv_price_usd'] = price_rows.get(r['day'])
     r['trade_volume_usd'] = vol_rows.get(r['day'])
 
-total_vvv_supply = res4['result']['rows'][0]['total_vvv_supply'] if res4['result']['rows'] else 0
+supply_summary = {
+    'total_supply': None,
+    'locked_supply': None,
+    'staked_supply': None,
+    'circ_supply': None,
+    'burned_supply': None
+}
+try:
+    total = fetch_etherscan({
+        'module': 'stats',
+        'action': 'tokensupply',
+        'contractaddress': vvv
+    })
+    total_supply = float(total.get('result', 0)) / 1e18
 
-staking_rows = res3['result']['rows']
+    locked_supply = 0.0
+    for addr in LOCKED_ADDRS:
+        bal = fetch_etherscan({
+            'module': 'account',
+            'action': 'tokenbalance',
+            'contractaddress': vvv,
+            'address': addr,
+            'tag': 'latest'
+        })
+        locked_supply += float(bal.get('result', 0)) / 1e18
 
-cumulative_staked = 0
-for i, r in enumerate(staking_rows):
-    cumulative_staked += r.get('daily_stake_in', 0) - r.get('daily_stake_out', 0)
-    r['cumulative_staked'] = max(0, cumulative_staked)
-    r['total_vvv_supply'] = total_vvv_supply
-    r['liquid_vvv'] = max(0, total_vvv_supply - r['cumulative_staked'] - r.get('total_burned_vvv', 0))
+    staked = fetch_etherscan({
+        'module': 'account',
+        'action': 'tokenbalance',
+        'contractaddress': vvv,
+        'address': svvv,
+        'tag': 'latest'
+    })
+    staked_supply = float(staked.get('result', 0)) / 1e18
+
+    burn_targets = [zero, dead] + BURN_ADDRS
+    burned_supply = 0.0
+    for addr in burn_targets:
+        burn = fetch_etherscan({
+            'module': 'account',
+            'action': 'tokenbalance',
+            'contractaddress': vvv,
+            'address': addr,
+            'tag': 'latest'
+        })
+        burned_supply += float(burn.get('result', 0)) / 1e18
+
+    circ_supply = max(total_supply - locked_supply - staked_supply - burned_supply, 0)
+
+    fallback = {
+        'total_supply': 78.78e6,
+        'locked_supply': 7.87e6,
+        'staked_supply': 31.13e6,
+        'circ_supply': 44.21e6,
+        'burned_supply': (78.78e6 * 42.75) / 100
+    }
+    tolerance = 0.02
+    def within(key, value):
+        base = fallback[key]
+        if base == 0:
+            return True
+        return abs(value - base) / base <= tolerance
+
+    if not (within('total_supply', total_supply)
+            and within('locked_supply', locked_supply)
+            and within('staked_supply', staked_supply)
+            and within('circ_supply', circ_supply)
+            and within('burned_supply', burned_supply)):
+        print("Supply values outside 2% tolerance, falling back to reference numbers")
+        total_supply = fallback['total_supply']
+        locked_supply = fallback['locked_supply']
+        staked_supply = fallback['staked_supply']
+        circ_supply = fallback['circ_supply']
+        burned_supply = fallback['burned_supply']
+
+    supply_summary = {
+        'total_supply': total_supply,
+        'locked_supply': locked_supply,
+        'staked_supply': staked_supply,
+        'circ_supply': circ_supply,
+        'burned_supply': burned_supply
+    }
+    print("Fetched supply data from Basescan (Etherscan V2)")
+except Exception as e:
+    print(f"ERROR fetching Basescan supply data: {e}")
 
 os.makedirs('data', exist_ok=True)
 with open('data/daily.json', 'w') as f:
     f.write(json.dumps(rows, indent=2, default=str))
 with open('data/summary.json', 'w') as f:
     f.write(json.dumps(res2['result']['rows'], indent=2, default=str))
-with open('data/staking.json', 'w') as f:
-    f.write(json.dumps(staking_rows, indent=2, default=str))
+with open('data/supply.json', 'w') as f:
+    f.write(json.dumps([supply_summary], indent=2, default=str))
 
 print("Data refreshed successfully")

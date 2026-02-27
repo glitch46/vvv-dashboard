@@ -21,6 +21,9 @@ jobs:
         env:
           DUNE_API_KEY: ${{ secrets.DUNE_API_KEY }}
           COINGECKO_API_KEY: ${{ secrets.COINGECKO_API_KEY }}
+          ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
+          VVV_LOCKED_ADDRESSES: ${{ secrets.VVV_LOCKED_ADDRESSES }}
+          VVV_BURN_ADDRESSES: ${{ secrets.VVV_BURN_ADDRESSES }}
         run: python scripts/refresh.py
       - name: Commit data
         run: |
