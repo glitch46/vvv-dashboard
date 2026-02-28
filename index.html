@@ -149,17 +149,57 @@
 
       const avgUnlockLine = labels.map(() => avgUnlock);
 
+      // Generate 7-day unlock forecast based on initiations 7 days ago
+      const today = new Date();
+      const forecast = [];
+      for (let i = 0; i < 7; i++) {
+        const unlockDate = new Date(today);
+        unlockDate.setDate(today.getDate() + i);
+        const unlockDateStr = unlockDate.toISOString().slice(0, 10);
+        const initDate = new Date(unlockDate);
+        initDate.setDate(unlockDate.getDate() - 7);
+        const initDateStr = initDate.toISOString().slice(0, 10);
+        const initData = daily.find(d => d.day === initDateStr);
+        const amount = initData ? Number(initData.initiated_amount || 0) : 0;
+        forecast.push({ date: unlockDateStr, amount: amount });
+      }
+
+      // Extend unlock chart to show 7 days forward
+      const futureLabels = forecast.map(f => f.date);
+      const extendedLabels = labels.concat(futureLabels);
+      const extendedUnlocks = unlocks.concat(forecast.map(f => f.amount));
+      const extendedAvgUnlock = extendedLabels.map(() => avgUnlock);
+      const lastPrice = price.length ? price[price.length - 1] : null;
+      const extendedPrice = price.concat(forecast.map(() => lastPrice));
+
+      if (extendedPrice.every(p => p === null || p === undefined)) {
+        try {
+          const cg = await loadJSON('https://api.coingecko.com/api/v3/coins/venice-token/market_chart?vs_currency=usd&days=30&interval=daily');
+          const cgMap = new Map();
+          (cg.prices || []).forEach(([ts, p]) => {
+            const day = new Date(ts).toISOString().slice(0, 10);
+            cgMap.set(day, p);
+          });
+          for (let i = 0; i < extendedLabels.length; i++) {
+            const day = extendedLabels[i];
+            if (cgMap.has(day)) extendedPrice[i] = cgMap.get(day);
+          }
+        } catch (e) {
+          // leave as-is if CoinGecko fails
+        }
+      }
+
       new Chart(document.getElementById('initUnlockChart'), {
         type: 'line',
-        data: { labels, datasets: [
-          { label: 'Unlocks (Tokens Become Transferable)', data: unlocks, borderColor: '#22d3ee', backgroundColor: 'rgba(34,211,238,0.12)', fill: true, tension: 0.2, yAxisID: 'y' },
-          { label: 'Avg Daily Unlocks (30d)', data: avgUnlockLine, borderColor: '#3b82f6', borderDash: [6,6], pointRadius: 0, tension: 0, yAxisID: 'y' },
-          { label: 'VVV Price (USD)', data: price, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.10)', fill: false, tension: 0.2, yAxisID: 'y1', borderWidth: 2, pointRadius: 2 }
+        data: { labels: extendedLabels, datasets: [
+          { label: 'Unlocks (Tokens Become Transferable)', data: extendedUnlocks, borderColor: '#22d3ee', backgroundColor: 'rgba(34,211,238,0.12)', fill: true, tension: 0.2, yAxisID: 'y' },
+          { label: 'Avg Daily Unlocks (30d)', data: extendedAvgUnlock, borderColor: '#3b82f6', borderDash: [6,6], pointRadius: 0, tension: 0, yAxisID: 'y' },
+          { label: 'VVV Price (USD)', data: extendedPrice, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.10)', fill: false, tension: 0.2, yAxisID: 'y1', borderWidth: 2, pointRadius: 2, spanGaps: true }
         ]},
         options: {
           plugins: { legend: { labels: { color: legendColor } } },
           scales: {
-            x: { ticks: { color: axisColor, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 }, grid: { color: gridColor } },
+            x: { ticks: { color: axisColor, maxRotation: 0, autoSkip: true, maxTicksLimit: 12 }, grid: { color: gridColor } },
             y: { position: 'left', ticks: { color: axisColor }, grid: { color: gridColor }, title: { display: true, text: 'Unlocks', color: axisColor } },
             y1: {
               position: 'right',
@@ -184,25 +224,6 @@
           }
         }
       });
-
-      // Generate 7-day unlock forecast based on initiations 7 days ago
-      const today = new Date();
-      const forecast = [];
-      for (let i = 0; i < 7; i++) {
-        const unlockDate = new Date(today);
-        unlockDate.setDate(today.getDate() + i);
-        const unlockDateStr = unlockDate.toISOString().slice(0, 10);
-        
-        // Find initiations from 7 days prior to this unlock date
-        const initDate = new Date(unlockDate);
-        initDate.setDate(unlockDate.getDate() - 7);
-        const initDateStr = initDate.toISOString().slice(0, 10);
-        
-        const initData = daily.find(d => d.day === initDateStr);
-        const amount = initData ? Number(initData.initiated_amount || 0) : 0;
-        
-        forecast.push({ date: unlockDateStr, amount: amount });
-      }
 
       // Render forecast list with % change
       const forecastList = document.getElementById('forecastList');
