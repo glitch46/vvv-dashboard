@@ -1,67 +1,67 @@
 [
   {
     "day": "2026-01-29",
-    "initiated_amount": 306167.62925678544,
-    "queue_amount": 306167.62925678544,
+    "initiated_amount": 3268.3114482817605,
+    "queue_amount": 3268.3114482817605,
     "unlock_amount": 0,
     "vvv_price_usd": null,
-    "trade_volume_usd": 2460320.297953275
+    "trade_volume_usd": 1627494.6630276602
   },
   {
     "day": "2026-01-30",
     "initiated_amount": 3836.293964560789,
-    "queue_amount": 310003.9232213462,
+    "queue_amount": 7104.605412842549,
     "unlock_amount": 0,
     "vvv_price_usd": null,
     "trade_volume_usd": 1811909.1963368575
   },
   {
     "day": "2026-01-31",
-    "initiated_amount": 42668.4082015634,
-    "queue_amount": 352672.33142290957,
+    "initiated_amount": 42668.40820156339,
+    "queue_amount": 49773.01361440596,
     "unlock_amount": 0,
     "vvv_price_usd": null,
     "trade_volume_usd": 4294467.206774833
   },
   {
     "day": "2026-02-01",
-    "initiated_amount": 6218.471312959694,
-    "queue_amount": 358890.8027358693,
+    "initiated_amount": 6218.471312959693,
+    "queue_amount": 55991.48492736564,
     "unlock_amount": 0,
     "vvv_price_usd": null,
-    "trade_volume_usd": 1585920.6614064113
+    "trade_volume_usd": 1585920.6614064116
   },
   {
     "day": "2026-02-02",
-    "initiated_amount": 80581.61260191428,
-    "queue_amount": 439472.41533778346,
+    "initiated_amount": 80581.6126019143,
+    "queue_amount": 136573.09752927994,
     "unlock_amount": 0,
     "vvv_price_usd": null,
-    "trade_volume_usd": 2010675.729121733
+    "trade_volume_usd": 2010675.7291217325
   },
   {
     "day": "2026-02-03",
     "initiated_amount": 748667.0905280606,
-    "queue_amount": 1188139.5058658442,
+    "queue_amount": 885240.1880573406,
     "unlock_amount": 0,
     "vvv_price_usd": null,
-    "trade_volume_usd": 1968308.2330083835
+    "trade_volume_usd": 1968308.2330083838
   },
   {
     "day": "2026-02-04",
     "initiated_amount": 18339.169029163633,
-    "queue_amount": 1206478.6748950079,
+    "queue_amount": 903579.3570865041,
     "unlock_amount": 0,
     "vvv_price_usd": null,
-    "trade_volume_usd": 1629312.52285171
+    "trade_volume_usd": 1629312.5228517102
   },
   {
     "day": "2026-02-05",
     "initiated_amount": 34984.29192839284,
-    "queue_amount": 1241462.9668234007,
-    "unlock_amount": 306167.62925678544,
+    "queue_amount": 938563.6490148971,
+    "unlock_amount": 3268.3114482817605,
     "vvv_price_usd": null,
-    "trade_volume_usd": 4016749.3320450857
+    "trade_volume_usd": 4016749.332045084
   },
   {
     "day": "2026-02-06",
@@ -69,31 +69,31 @@
     "queue_amount": 1086024.8404818918,
     "unlock_amount": 3836.293964560789,
     "vvv_price_usd": null,
-    "trade_volume_usd": 2330222.1407615365
+    "trade_volume_usd": 2330222.140761537
   },
   {
     "day": "2026-02-07",
-    "initiated_amount": 2317.8834713178685,
+    "initiated_amount": 2317.883471317869,
     "queue_amount": 1084506.4299886485,
     "unlock_amount": 42668.40820156339,
     "vvv_price_usd": null,
-    "trade_volume_usd": 1263619.2856470007
+    "trade_volume_usd": 1263619.2856470002
   },
   {
     "day": "2026-02-08",
-    "initiated_amount": 495.7132372278012,
+    "initiated_amount": 495.71323722780113,
     "queue_amount": 1042333.7350243131,
     "unlock_amount": 6218.471312959693,
     "vvv_price_usd": null,
-    "trade_volume_usd": 771772.2061111568
+    "trade_volume_usd": 771772.2061111567
   },
   {
     "day": "2026-02-09",
-    "initiated_amount": 21234.437771738332,
+    "initiated_amount": 21234.437771738336,
     "queue_amount": 1057349.7014830918,
     "unlock_amount": 80581.6126019143,
     "vvv_price_usd": null,
-    "trade_volume_usd": 774065.5204282922
+    "trade_volume_usd": 774065.5204282921
   },
   {
     "day": "2026-02-10",
@@ -101,13 +101,13 @@
     "queue_amount": 980771.4532672095,
     "unlock_amount": 748667.0905280606,
     "vvv_price_usd": null,
-    "trade_volume_usd": 883294.6347039951
+    "trade_volume_usd": 883294.6347039952
   },
   {
     "day": "2026-02-11",
-    "initiated_amount": 139589.4468265498,
+    "initiated_amount": 139589.44682654977,
     "queue_amount": 371693.8095656989,
-    "unlock_amount": 18339.16902916363,
+    "unlock_amount": 18339.169029163626,
     "vvv_price_usd": null,
     "trade_volume_usd": 846232.9354490618
   },
@@ -115,15 +115,15 @@
     "day": "2026-02-12",
     "initiated_amount": 4439.615033409982,
     "queue_amount": 357794.25556994515,
-    "unlock_amount": 34984.29192839285,
+    "unlock_amount": 34984.29192839284,
     "vvv_price_usd": null,
-    "trade_volume_usd": 694499.3527164906
+    "trade_volume_usd": 694499.3527164907
   },
   {
     "day": "2026-02-13",
     "initiated_amount": 13052.314694016835,
     "queue_amount": 335862.2783355692,
-    "unlock_amount": 150729.50291527642,
+    "unlock_amount": 150729.5029152764,
     "vvv_price_usd": null,
     "trade_volume_usd": 10689532.300770737
   },
@@ -149,23 +149,23 @@
     "queue_amount": 833417.8639004979,
     "unlock_amount": 21234.437771738332,
     "vvv_price_usd": null,
-    "trade_volume_usd": 19782735.913006656
+    "trade_volume_usd": 19782735.913006652
   },
   {
     "day": "2026-02-17",
-    "initiated_amount": 41883.46441703102,
+    "initiated_amount": 41883.46441703101,
     "queue_amount": 854066.8905457907,
     "unlock_amount": 4003.3643860321745,
     "vvv_price_usd": null,
-    "trade_volume_usd": 13875892.005913643
+    "trade_volume_usd": 13875892.005913645
   },
   {
     "day": "2026-02-18",
-    "initiated_amount": 23433.825092662617,
+    "initiated_amount": 23433.825092662613,
     "queue_amount": 873497.3512524212,
-    "unlock_amount": 139589.4468265498,
+    "unlock_amount": 139589.44682654977,
     "vvv_price_usd": null,
-    "trade_volume_usd": 8206335.063860984
+    "trade_volume_usd": 8206335.063860983
   },
   {
     "day": "2026-02-19",
@@ -173,7 +173,7 @@
     "queue_amount": 738050.5709586259,
     "unlock_amount": 4439.615033409982,
     "vvv_price_usd": null,
-    "trade_volume_usd": 6748550.374187035
+    "trade_volume_usd": 6748550.374187033
   },
   {
     "day": "2026-02-20",
@@ -185,11 +185,11 @@
   },
   {
     "day": "2026-02-21",
-    "initiated_amount": 86435.0371390931,
+    "initiated_amount": 86435.03713909311,
     "queue_amount": 906454.6354778634,
     "unlock_amount": 19474.171075951977,
     "vvv_price_usd": null,
-    "trade_volume_usd": 3822016.9168008855
+    "trade_volume_usd": 3822016.916800884
   },
   {
     "day": "2026-02-22",
@@ -197,13 +197,13 @@
     "queue_amount": 977976.0186704419,
     "unlock_amount": 471343.1675685605,
     "vvv_price_usd": null,
-    "trade_volume_usd": 3649016.7765438375
+    "trade_volume_usd": 3649016.7765438366
   },
   {
     "day": "2026-02-23",
     "initiated_amount": 8578.254565971147,
     "queue_amount": 515211.10566785204,
-    "unlock_amount": 160281.34654423824,
+    "unlock_amount": 160281.34654423827,
     "vvv_price_usd": null,
     "trade_volume_usd": 4299249.596410002
   },
@@ -219,32 +219,32 @@
     "day": "2026-02-25",
     "initiated_amount": 60294.667388767906,
     "queue_amount": 389770.7828502177,
-    "unlock_amount": 23433.825092662617,
+    "unlock_amount": 23433.825092662613,
     "vvv_price_usd": null,
-    "trade_volume_usd": 7425375.838930964
+    "trade_volume_usd": 7425375.838930925
   },
   {
     "day": "2026-02-26",
-    "initiated_amount": 25029.913400885605,
+    "initiated_amount": 25029.9134008856,
     "queue_amount": 391366.87115844083,
-    "unlock_amount": 4142.666532754284,
+    "unlock_amount": 4142.666532754283,
     "vvv_price_usd": null,
-    "trade_volume_usd": 5122946.550487853
+    "trade_volume_usd": 5122946.550487856
   },
   {
     "day": "2026-02-27",
-    "initiated_amount": 64097.99445457584,
+    "initiated_amount": 64097.99445457582,
     "queue_amount": 451322.1990802623,
     "unlock_amount": 99460.9571075711,
     "vvv_price_usd": null,
-    "trade_volume_usd": 12546643.283636564
+    "trade_volume_usd": 12546643.28363659
   },
   {
     "day": "2026-02-28",
-    "initiated_amount": 5750,
-    "queue_amount": 357611.2419726914,
-    "unlock_amount": 86435.03713909308,
+    "initiated_amount": 15006.718240038977,
+    "queue_amount": 366867.96021273034,
+    "unlock_amount": 86435.03713909311,
     "vvv_price_usd": null,
-    "trade_volume_usd": 456303.3881236565
+    "trade_volume_usd": 7698954.103009761
   }
 ]
