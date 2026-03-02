@@ -1,9 +1,9 @@
 [
   {
-    "total_supply": null,
-    "locked_supply": null,
-    "staked_supply": null,
-    "circ_supply": null,
-    "burned_supply": null
+    "total_supply": 78780000.0,
+    "locked_supply": 7870000.0,
+    "staked_supply": 31130000.0,
+    "circ_supply": 44210000.0,
+    "burned_supply": 33680000.0
   }
 ]
