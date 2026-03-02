@@ -230,13 +230,13 @@ for r in rows:
     r['vvv_price_usd'] = price_rows.get(r['day'])
     r['trade_volume_usd'] = vol_rows.get(r['day'])
 
-# Default values from Venice AI dashboard (March 2026)
+# Default values from known VVV token distribution
 supply_summary = {
-    'total_supply': 78840000.0,
-    'locked_supply': 7900000.0,
-    'staked_supply': 30690000.0,
-    'circ_supply': 44330000.0,
-    'burned_supply': 0.0  # Burned tokens are separate, not shown in Venice dashboard
+    'total_supply': 78780000.0,
+    'locked_supply': 7870000.0,
+    'staked_supply': 31130000.0,
+    'circ_supply': 44210000.0,
+    'burned_supply': 33680000.0  # ~42.75% of total
 }
 try:
     total = fetch_etherscan({

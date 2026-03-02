@@ -71,7 +71,7 @@
       </div>
     </div>
 
-    <div class="panel" style="margin-top:16px;">
+    <div class="panel" id="howToRead" style="margin-top:16px;">
       <strong>How to read this:</strong><br>
       • <strong>Initiated</strong> = when a user called <code>initiateUnstake</code> (cooldown starts)<br>
       • <strong>Unlock</strong> = 7 days after initiation (cooldown ends, tokens become transferable)<br>
@@ -271,7 +271,7 @@
             <li class="forecast-item"><span class="forecast-date">Burned</span><span class="forecast-amount">${fmt(burned)} VVV</span></li>
           </ul>
         `;
-        document.querySelector('.container').insertBefore(distContainer, document.querySelector('.footer'));
+        document.querySelector('.container').insertBefore(distContainer, document.getElementById('howToRead'));
       } catch (e) {
         console.log('Supply data not available');
       }
