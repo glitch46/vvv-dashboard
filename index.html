@@ -55,7 +55,7 @@
 <body>
   <div class="container">
     <h1>VVV Unstaking Queue - 30 Day Story</h1>
-    <div class="subtitle">sVVV initiateUnstake on Base. 7-day cooldown before tokens become freely transferable. Updated every 12 hours.</div>
+    <div class="subtitle">sVVV initiateUnstake on Base. 7-day cooldown before tokens become freely transferable. Updated every 6 hours.</div>
 
     <div class="grid kpis" id="kpis"></div>
 
@@ -79,7 +79,7 @@
       The unlock chart shows when tokens become freely sellable — spikes indicate potential sell pressure.
     </div>
 
-    <div class="footer">Data refresh: every 12 hours. Sources: Dune (unstaking via sVVV), CoinGecko (price). Public dashboard uses static JSON with no embedded keys.</div>
+    <div class="footer">Data refresh: every 6 hours. Sources: Dune (unstaking via sVVV), CoinGecko (price). Public dashboard uses static JSON with no embedded keys.</div>
   </div>
 
   <script>
@@ -170,7 +170,7 @@
       const extendedUnlocks = unlocks.concat(forecast.map(f => f.amount));
       const extendedAvgUnlock = extendedLabels.map(() => avgUnlock);
       const lastPrice = price.length ? price[price.length - 1] : null;
-      const extendedPrice = price.concat(forecast.map(() => lastPrice));
+      const extendedPrice = price.concat(forecast.map(() => null));
 
       if (extendedPrice.every(p => p === null || p === undefined)) {
         try {
