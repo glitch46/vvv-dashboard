@@ -61,6 +61,7 @@
 
     <div class="grid charts" style="margin-top:16px;">
       <div class="panel"><canvas id="initUnlockChart"></canvas></div>
+      <div class="panel"><canvas id="buySellChart"></canvas></div>
       <div class="panel"><canvas id="initChart"></canvas></div>
       <div class="panel" id="forecastPanel">
         <div class="forecast-header">
@@ -212,6 +213,31 @@
               suggestedMin: priceMin * 0.9,
               suggestedMax: priceMax * 1.1
             }
+          }
+        }
+      });
+
+      // Buy/Sell Volume Chart (last 14 days)
+      const buyVolume = daily.map(d => Number(d.buy_volume_usd || 0));
+      const sellVolume = daily.map(d => Number(d.sell_volume_usd || 0));
+      const last14 = labels.length > 14 ? labels.slice(-14) : labels;
+      const last14Buy = buyVolume.length > 14 ? buyVolume.slice(-14) : buyVolume;
+      const last14Sell = sellVolume.length > 14 ? sellVolume.slice(-14) : sellVolume;
+
+      new Chart(document.getElementById('buySellChart'), {
+        type: 'bar',
+        data: { labels: last14, datasets: [
+          { label: 'Buy Volume (USD)', data: last14Buy, backgroundColor: '#22c55e', borderRadius: 4 },
+          { label: 'Sell Volume (USD)', data: last14Sell, backgroundColor: '#ef4444', borderRadius: 4 }
+        ]},
+        options: {
+          plugins: { 
+            legend: { labels: { color: legendColor } },
+            title: { display: true, text: 'Daily Buy/Sell Volume (14 Days)', color: legendColor, font: { size: 14 } }
+          },
+          scales: {
+            x: { ticks: { color: axisColor, maxRotation: 45, autoSkip: true, maxTicksLimit: 14 }, grid: { color: gridColor }, stacked: false },
+            y: { ticks: { color: axisColor, callback: (v) => '$' + fmt(v) }, grid: { color: gridColor }, title: { display: true, text: 'Volume (USD)', color: axisColor } }
           }
         }
       });
