@@ -1,92 +1,92 @@
 [
   {
     "day": "2026-02-07",
-    "initiated_amount": 2302.8834713178685,
-    "queue_amount": 2302.8834713178685,
+    "initiated_amount": 1298.6206155585921,
+    "queue_amount": 1298.620615558592,
     "unlock_amount": 0,
     "vvv_price_usd": null,
-    "trade_volume_usd": 1207375.1793163668,
-    "buy_volume_usd": 474448.64640400844,
-    "sell_volume_usd": 732926.5329123584
+    "trade_volume_usd": 985805.624492419,
+    "buy_volume_usd": 408931.87044085294,
+    "sell_volume_usd": 576873.7540515659
   },
   {
     "day": "2026-02-08",
-    "initiated_amount": 495.71323722780113,
-    "queue_amount": 2798.59670854567,
+    "initiated_amount": 495.7132372278012,
+    "queue_amount": 1794.333852786393,
     "unlock_amount": 0,
-    "vvv_price_usd": null,
-    "trade_volume_usd": 771772.2061111567,
+    "vvv_price_usd": 1.906533052930111,
+    "trade_volume_usd": 771772.2061111568,
     "buy_volume_usd": 301268.7369875304,
-    "sell_volume_usd": 470503.4691236263
+    "sell_volume_usd": 470503.4691236265
   },
   {
     "day": "2026-02-09",
-    "initiated_amount": 21234.437771738336,
-    "queue_amount": 24033.034480284005,
+    "initiated_amount": 21234.437771738332,
+    "queue_amount": 23028.77162452473,
     "unlock_amount": 0,
-    "vvv_price_usd": null,
-    "trade_volume_usd": 774065.5204282921,
-    "buy_volume_usd": 425680.8988826474,
-    "sell_volume_usd": 348384.6215456451
+    "vvv_price_usd": 1.8230260399019182,
+    "trade_volume_usd": 774065.5204282923,
+    "buy_volume_usd": 425680.8988826473,
+    "sell_volume_usd": 348384.62154564506
   },
   {
     "day": "2026-02-10",
-    "initiated_amount": 4003.3643860321745,
-    "queue_amount": 28036.398866316173,
+    "initiated_amount": 4003.364386032174,
+    "queue_amount": 27032.136010556897,
     "unlock_amount": 0,
-    "vvv_price_usd": null,
-    "trade_volume_usd": 883294.634703995,
-    "buy_volume_usd": 490608.0420102681,
-    "sell_volume_usd": 392686.5926937274
+    "vvv_price_usd": 1.8570798813212954,
+    "trade_volume_usd": 883294.6347039951,
+    "buy_volume_usd": 490608.0420102679,
+    "sell_volume_usd": 392686.5926937276
   },
   {
     "day": "2026-02-11",
     "initiated_amount": 139589.44682654977,
-    "queue_amount": 167625.84569286596,
+    "queue_amount": 166621.58283710666,
     "unlock_amount": 0,
-    "vvv_price_usd": null,
-    "trade_volume_usd": 846232.9354490619,
-    "buy_volume_usd": 472807.2081391094,
-    "sell_volume_usd": 373425.72730995243
+    "vvv_price_usd": 1.8228080787342422,
+    "trade_volume_usd": 846232.9354490617,
+    "buy_volume_usd": 472807.20813910937,
+    "sell_volume_usd": 373425.7273099526
   },
   {
     "day": "2026-02-12",
     "initiated_amount": 4439.615033409982,
-    "queue_amount": 172065.46072627592,
+    "queue_amount": 171061.19787051663,
     "unlock_amount": 0,
-    "vvv_price_usd": null,
-    "trade_volume_usd": 694499.3527164906,
-    "buy_volume_usd": 349201.59002652764,
-    "sell_volume_usd": 345297.7626899634
+    "vvv_price_usd": 1.7888255751406725,
+    "trade_volume_usd": 694499.3527164904,
+    "buy_volume_usd": 349201.5900265275,
+    "sell_volume_usd": 345297.76268996333
   },
   {
     "day": "2026-02-13",
     "initiated_amount": 13052.314694016835,
-    "queue_amount": 185117.77542029272,
+    "queue_amount": 184113.51256453342,
     "unlock_amount": 0,
-    "vvv_price_usd": null,
-    "trade_volume_usd": 10689532.300770741,
-    "buy_volume_usd": 5947819.11343311,
+    "vvv_price_usd": 1.8189413147939792,
+    "trade_volume_usd": 10689532.300770745,
+    "buy_volume_usd": 5947819.113433111,
     "sell_volume_usd": 4741713.18733763
   },
   {
     "day": "2026-02-14",
     "initiated_amount": 19474.171075951977,
-    "queue_amount": 204591.94649624464,
-    "unlock_amount": 2302.883471317868,
-    "vvv_price_usd": null,
-    "trade_volume_usd": 13734316.654953424,
+    "queue_amount": 203587.68364048534,
+    "unlock_amount": 1298.6206155585921,
+    "vvv_price_usd": 2.906687916956092,
+    "trade_volume_usd": 13734316.654953416,
     "buy_volume_usd": 6960659.207936685,
-    "sell_volume_usd": 6773657.44701673
+    "sell_volume_usd": 6773657.447016731
   },
   {
     "day": "2026-02-15",
-    "initiated_amount": 471343.1675685605,
+    "initiated_amount": 471343.1675685606,
     "queue_amount": 673632.2305934873,
     "unlock_amount": 495.71323722780113,
-    "vvv_price_usd": null,
+    "vvv_price_usd": 3.1622194453484154,
     "trade_volume_usd": 25912353.75289535,
-    "buy_volume_usd": 13565356.57519814,
+    "buy_volume_usd": 13565356.575198138,
     "sell_volume_usd": 12346997.17769717
   },
   {
@@ -94,38 +94,38 @@
     "initiated_amount": 160281.34654423827,
     "queue_amount": 833417.8639004979,
     "unlock_amount": 21234.437771738332,
-    "vvv_price_usd": null,
-    "trade_volume_usd": 19782735.91300666,
-    "buy_volume_usd": 9722084.282873737,
-    "sell_volume_usd": 10060651.630132938
+    "vvv_price_usd": 4.477822253291032,
+    "trade_volume_usd": 19782735.913006667,
+    "buy_volume_usd": 9722084.282873735,
+    "sell_volume_usd": 10060651.630132942
   },
   {
     "day": "2026-02-17",
-    "initiated_amount": 41883.46441703102,
+    "initiated_amount": 41883.46441703101,
     "queue_amount": 854066.8905457907,
-    "unlock_amount": 4003.3643860321745,
-    "vvv_price_usd": null,
-    "trade_volume_usd": 13875892.00591365,
-    "buy_volume_usd": 7065482.9926764965,
-    "sell_volume_usd": 6810409.013237147
+    "unlock_amount": 4003.364386032174,
+    "vvv_price_usd": 4.145282078368054,
+    "trade_volume_usd": 13875892.005913649,
+    "buy_volume_usd": 7065482.992676497,
+    "sell_volume_usd": 6810409.013237145
   },
   {
     "day": "2026-02-18",
     "initiated_amount": 23433.825092662617,
     "queue_amount": 873497.3512524212,
     "unlock_amount": 139589.44682654977,
-    "vvv_price_usd": null,
-    "trade_volume_usd": 8206335.063860991,
-    "buy_volume_usd": 3830654.018897043,
-    "sell_volume_usd": 4375681.044963942
+    "vvv_price_usd": 4.338562633484641,
+    "trade_volume_usd": 8206335.063860992,
+    "buy_volume_usd": 3830654.0188970435,
+    "sell_volume_usd": 4375681.044963941
   },
   {
     "day": "2026-02-19",
     "initiated_amount": 4142.666532754283,
     "queue_amount": 738050.5709586259,
     "unlock_amount": 4439.615033409982,
-    "vvv_price_usd": null,
-    "trade_volume_usd": 6748550.374187036,
+    "vvv_price_usd": 3.6308896016477505,
+    "trade_volume_usd": 6748550.374187039,
     "buy_volume_usd": 3454735.668325498,
     "sell_volume_usd": 3293814.705861538
   },
@@ -133,180 +133,180 @@
     "day": "2026-02-20",
     "initiated_amount": 99460.9571075711,
     "queue_amount": 833071.9130327869,
-    "unlock_amount": 13052.314694016835,
-    "vvv_price_usd": null,
-    "trade_volume_usd": 11066552.518529402,
-    "buy_volume_usd": 5814089.303782942,
-    "sell_volume_usd": 5252463.214746455
+    "unlock_amount": 13052.314694016834,
+    "vvv_price_usd": 3.73933445250086,
+    "trade_volume_usd": 11066552.518529395,
+    "buy_volume_usd": 5814089.303782945,
+    "sell_volume_usd": 5252463.214746453
   },
   {
     "day": "2026-02-21",
-    "initiated_amount": 86435.0371390931,
+    "initiated_amount": 86435.03713909311,
     "queue_amount": 906454.6354778634,
     "unlock_amount": 19474.171075951977,
-    "vvv_price_usd": null,
-    "trade_volume_usd": 3822016.916800885,
-    "buy_volume_usd": 1892075.9298683433,
-    "sell_volume_usd": 1929940.9869325403
+    "vvv_price_usd": 4.453612208609782,
+    "trade_volume_usd": 3822016.916800884,
+    "buy_volume_usd": 1892075.9298683435,
+    "sell_volume_usd": 1929940.9869325405
   },
   {
     "day": "2026-02-22",
-    "initiated_amount": 90995.5542685307,
+    "initiated_amount": 90995.55426853069,
     "queue_amount": 977976.0186704419,
     "unlock_amount": 471343.1675685606,
-    "vvv_price_usd": null,
-    "trade_volume_usd": 3649016.7765438408,
+    "vvv_price_usd": 4.3489370866321515,
+    "trade_volume_usd": 3649016.7765438426,
     "buy_volume_usd": 1590754.9246248612,
-    "sell_volume_usd": 2058261.8519189798
+    "sell_volume_usd": 2058261.8519189793
   },
   {
     "day": "2026-02-23",
     "initiated_amount": 8578.254565971147,
     "queue_amount": 515211.10566785204,
     "unlock_amount": 160281.34654423827,
-    "vvv_price_usd": null,
-    "trade_volume_usd": 4299249.596409989,
-    "buy_volume_usd": 2203957.4200821556,
-    "sell_volume_usd": 2095292.1763278323
+    "vvv_price_usd": 3.8648191434489885,
+    "trade_volume_usd": 4299249.5964099895,
+    "buy_volume_usd": 2203957.420082157,
+    "sell_volume_usd": 2095292.1763278325
   },
   {
     "day": "2026-02-24",
     "initiated_amount": 16429.82075486712,
     "queue_amount": 371359.5798784808,
-    "unlock_amount": 41883.46441703102,
-    "vvv_price_usd": null,
-    "trade_volume_usd": 6885667.776091219,
-    "buy_volume_usd": 3446194.144820094,
-    "sell_volume_usd": 3439473.6312711234
+    "unlock_amount": 41883.46441703101,
+    "vvv_price_usd": 3.7635460228385758,
+    "trade_volume_usd": 6885667.776091217,
+    "buy_volume_usd": 3446194.1448200964,
+    "sell_volume_usd": 3439473.6312711225
   },
   {
     "day": "2026-02-25",
     "initiated_amount": 60294.667388767906,
     "queue_amount": 389770.7828502177,
     "unlock_amount": 23433.825092662617,
-    "vvv_price_usd": null,
+    "vvv_price_usd": 3.638635244786173,
     "trade_volume_usd": 7425375.838930919,
-    "buy_volume_usd": 3734112.875731264,
+    "buy_volume_usd": 3734112.875731263,
     "sell_volume_usd": 3691262.9631996555
   },
   {
     "day": "2026-02-26",
-    "initiated_amount": 25029.9134008856,
+    "initiated_amount": 25029.913400885605,
     "queue_amount": 391366.87115844083,
-    "unlock_amount": 4142.666532754283,
-    "vvv_price_usd": null,
-    "trade_volume_usd": 5122946.550487869,
-    "buy_volume_usd": 2871242.2500497974,
-    "sell_volume_usd": 2251704.3004380725
+    "unlock_amount": 4142.666532754282,
+    "vvv_price_usd": 3.9201230217708005,
+    "trade_volume_usd": 5122946.550487871,
+    "buy_volume_usd": 2871242.250049797,
+    "sell_volume_usd": 2251704.300438072
   },
   {
     "day": "2026-02-27",
     "initiated_amount": 64097.994454575826,
     "queue_amount": 451322.1990802623,
-    "unlock_amount": 99460.95710757108,
-    "vvv_price_usd": null,
-    "trade_volume_usd": 12546643.28363659,
+    "unlock_amount": 99460.9571075711,
+    "vvv_price_usd": 4.097229527163522,
+    "trade_volume_usd": 12546643.283636592,
     "buy_volume_usd": 6749261.754706475,
-    "sell_volume_usd": 5797381.528930111
+    "sell_volume_usd": 5797381.52893011
   },
   {
     "day": "2026-02-28",
     "initiated_amount": 86041.01151643973,
     "queue_amount": 437902.25348913117,
     "unlock_amount": 86435.0371390931,
-    "vvv_price_usd": null,
-    "trade_volume_usd": 13941548.379110064,
-    "buy_volume_usd": 7169127.71906271,
-    "sell_volume_usd": 6772420.660047363
+    "vvv_price_usd": 4.5859192876968,
+    "trade_volume_usd": 13941548.379110066,
+    "buy_volume_usd": 7169127.719062711,
+    "sell_volume_usd": 6772420.660047362
   },
   {
     "day": "2026-03-01",
-    "initiated_amount": 109392.4821060017,
+    "initiated_amount": 109392.48210600168,
     "queue_amount": 460859.69845603965,
     "unlock_amount": 90995.55426853069,
-    "vvv_price_usd": null,
-    "trade_volume_usd": 11862035.812936427,
+    "vvv_price_usd": 5.415805681069616,
+    "trade_volume_usd": 11862035.812936429,
     "buy_volume_usd": 6392625.962700327,
     "sell_volume_usd": 5469409.850236139
   },
   {
     "day": "2026-03-02",
-    "initiated_amount": 647121.906601273,
+    "initiated_amount": 647121.9066012729,
     "queue_amount": 1016986.0507887822,
     "unlock_amount": 8578.254565971147,
-    "vvv_price_usd": null,
+    "vvv_price_usd": 6.39527658683122,
     "trade_volume_usd": 21524521.53776582,
-    "buy_volume_usd": 11005927.527377963,
+    "buy_volume_usd": 11005927.527377965,
     "sell_volume_usd": 10518594.010387855
   },
   {
     "day": "2026-03-03",
-    "initiated_amount": 124454.92842550727,
+    "initiated_amount": 124454.92842550729,
     "queue_amount": 1132862.7246483187,
     "unlock_amount": 16429.82075486712,
-    "vvv_price_usd": null,
+    "vvv_price_usd": 7.266666805026798,
     "trade_volume_usd": 16563855.370837701,
-    "buy_volume_usd": 7995939.974455786,
+    "buy_volume_usd": 7995939.974455785,
     "sell_volume_usd": 8567915.396381926
   },
   {
     "day": "2026-03-04",
-    "initiated_amount": 62024.6965569802,
+    "initiated_amount": 62024.696556980205,
     "queue_amount": 1178457.6004504315,
-    "unlock_amount": 60294.667388767906,
-    "vvv_price_usd": null,
+    "unlock_amount": 60294.66738876791,
+    "vvv_price_usd": 6.020259847213291,
     "trade_volume_usd": 13562387.703098943,
-    "buy_volume_usd": 6789493.173905972,
+    "buy_volume_usd": 6789493.173905971,
     "sell_volume_usd": 6772894.529193002
   },
   {
     "day": "2026-03-05",
-    "initiated_amount": 16532.709137457558,
+    "initiated_amount": 16532.70913745756,
     "queue_amount": 1134695.6421991207,
     "unlock_amount": 25029.913400885605,
-    "vvv_price_usd": null,
+    "vvv_price_usd": 6.469666478456113,
     "trade_volume_usd": 12531024.246608805,
-    "buy_volume_usd": 6197341.404897223,
-    "sell_volume_usd": 6333682.841711599
+    "buy_volume_usd": 6197341.404897222,
+    "sell_volume_usd": 6333682.841711598
   },
   {
     "day": "2026-03-06",
-    "initiated_amount": 10690.677070724616,
+    "initiated_amount": 10690.677070724618,
     "queue_amount": 1120356.4058689596,
-    "unlock_amount": 64097.994454575826,
-    "vvv_price_usd": null,
-    "trade_volume_usd": 6543840.393407279,
-    "buy_volume_usd": 3316805.3423686097,
-    "sell_volume_usd": 3227035.0510386224
+    "unlock_amount": 64097.99445457583,
+    "vvv_price_usd": 6.181386541348098,
+    "trade_volume_usd": 6543840.393407262,
+    "buy_volume_usd": 3316805.342368615,
+    "sell_volume_usd": 3227035.051038628
   },
   {
     "day": "2026-03-07",
     "initiated_amount": 7261.088912281845,
     "queue_amount": 1063519.500326666,
     "unlock_amount": 86041.01151643973,
-    "vvv_price_usd": null,
-    "trade_volume_usd": 5056721.08879837,
-    "buy_volume_usd": 2585691.0356886014,
-    "sell_volume_usd": 2471030.053109786
+    "vvv_price_usd": 5.887344165086618,
+    "trade_volume_usd": 5056721.088798402,
+    "buy_volume_usd": 2585691.035688602,
+    "sell_volume_usd": 2471030.0531097734
   },
   {
     "day": "2026-03-08",
-    "initiated_amount": 330166.58112686005,
+    "initiated_amount": 330166.5811268601,
     "queue_amount": 1307645.0699370871,
     "unlock_amount": 109392.4821060017,
-    "vvv_price_usd": null,
-    "trade_volume_usd": 6419520.16608206,
-    "buy_volume_usd": 3068886.7349898587,
-    "sell_volume_usd": 3350633.4310922124
+    "vvv_price_usd": 5.89775764006891,
+    "trade_volume_usd": 6454030.303500844,
+    "buy_volume_usd": 3074844.404896948,
+    "sell_volume_usd": 3379185.8986039083
   },
   {
     "day": "2026-03-09",
-    "initiated_amount": 273.0278369495547,
-    "queue_amount": 1198525.6156680344,
+    "initiated_amount": 14204.384649414495,
+    "queue_amount": 1212456.9724804992,
     "unlock_amount": 647121.9066012729,
-    "vvv_price_usd": null,
-    "trade_volume_usd": null,
-    "buy_volume_usd": null,
-    "sell_volume_usd": null
+    "vvv_price_usd": 5.12793611428527,
+    "trade_volume_usd": 1221628.4699944702,
+    "buy_volume_usd": 409764.6411395849,
+    "sell_volume_usd": 811863.8288548816
   }
 ]
