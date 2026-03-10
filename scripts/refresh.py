@@ -125,7 +125,8 @@ sql_stake = f"""
 WITH transfer AS (
   SELECT
     block_time,
-    topic1 AS staker
+    topic1 AS staker,
+    bytearray_to_uint256(data) / 1e18 AS amount
   FROM base.logs
   WHERE
     contract_address = {vvv}
@@ -144,13 +145,17 @@ _days AS (
 ),
 
 daily_staked AS (
-  SELECT CAST(date_trunc('day', block_time) AS date) AS day, COUNT(DISTINCT staker) AS staked_users
+  SELECT
+    CAST(date_trunc('day', block_time) AS date) AS day,
+    SUM(amount) AS staked_amount,
+    COUNT(DISTINCT staker) AS staked_users
   FROM transfer
   GROUP BY 1
 )
 
 SELECT
   d.day,
+  COALESCE(s.staked_amount, 0) AS staked_amount,
   COALESCE(s.staked_users, 0) AS staked_users
 FROM _days d
 LEFT JOIN daily_staked s ON d.day = s.day
@@ -210,7 +215,8 @@ res1 = results(r1['execution_id'])
 res2 = results(r2['execution_id'])
 res_stake = results(r_stake['execution_id'])
 
-stake_map = {r['day']: r.get('staked_users', 0) for r in res_stake.get('result', {}).get('rows', [])}
+stake_amount_map = {r['day']: r.get('staked_amount', 0) for r in res_stake.get('result', {}).get('rows', [])}
+stake_users_map = {r['day']: r.get('staked_users', 0) for r in res_stake.get('result', {}).get('rows', [])}
 
 price_rows = {}
 try:
@@ -277,7 +283,8 @@ rows = res1['result']['rows']
 for r in rows:
     r['vvv_price_usd'] = price_rows.get(r['day'])
     r['trade_volume_usd'] = vol_rows.get(r['day'])
-    r['staked_users'] = stake_map.get(r['day'], 0)
+    r['staked_amount'] = stake_amount_map.get(r['day'], 0)
+    r['staked_users'] = stake_users_map.get(r['day'], 0)
     r['buy_volume_usd'] = buy_rows.get(r['day'])
     r['sell_volume_usd'] = sell_rows.get(r['day'])
 
