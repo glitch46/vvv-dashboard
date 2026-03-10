@@ -232,10 +232,14 @@ except Exception as e:
     price_rows = {}
 
 vol_rows = {}
+buy_rows = {}
+sell_rows = {}
 try:
     sqlv = f"""
     SELECT CAST(date_trunc('day', block_time) AS date) AS day,
-           SUM(amount_usd) AS trade_volume_usd
+           SUM(amount_usd) AS trade_volume_usd,
+           SUM(CASE WHEN token_bought_address = {vvv} THEN amount_usd ELSE 0 END) AS buy_volume_usd,
+           SUM(CASE WHEN token_sold_address = {vvv} THEN amount_usd ELSE 0 END) AS sell_volume_usd
     FROM dex.trades
     WHERE blockchain='base'
       AND (token_bought_address = {vvv} OR token_sold_address = {vvv})
@@ -261,15 +265,21 @@ try:
             resv = json.loads(resp.read().decode('utf-8'))
         for r in resv.get('result', {}).get('rows', []):
             vol_rows[r['day']] = r.get('trade_volume_usd')
+            buy_rows[r['day']] = r.get('buy_volume_usd')
+            sell_rows[r['day']] = r.get('sell_volume_usd')
 except Exception as e:
     print(f"ERROR fetching volume: {e}")
     vol_rows = {}
+    buy_rows = {}
+    sell_rows = {}
 
 rows = res1['result']['rows']
 for r in rows:
     r['vvv_price_usd'] = price_rows.get(r['day'])
     r['trade_volume_usd'] = vol_rows.get(r['day'])
     r['staked_amount'] = stake_map.get(r['day'], 0)
+    r['buy_volume_usd'] = buy_rows.get(r['day'])
+    r['sell_volume_usd'] = sell_rows.get(r['day'])
 
 # Default values from known VVV token distribution
 supply_summary = {
