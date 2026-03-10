@@ -123,14 +123,15 @@ SELECT
 """
 
 sql_stake = f"""
-WITH tx AS (
+WITH transfer AS (
   SELECT
     block_time,
-    bytearray_to_uint256(bytearray_substring(data, 5, 32)) / 1e18 AS amount
+    bytearray_to_uint256(bytearray_substring(data, 37, 32)) / 1e18 AS amount
   FROM base.transactions
   WHERE
-    to = {svvv}
-    AND bytearray_substring(data, 1, 4) = {stake_method}
+    to = {vvv}
+    AND bytearray_substring(data, 1, 4) = '0xa9059cbb'
+    AND bytearray_substring(data, 17, 20) = {svvv}
     AND block_time >= now() - interval '30' day
 ),
 
@@ -145,7 +146,7 @@ _days AS (
 
 daily_staked AS (
   SELECT CAST(date_trunc('day', block_time) AS date) AS day, SUM(amount) AS staked_amount
-  FROM tx
+  FROM transfer
   GROUP BY 1
 )
 
