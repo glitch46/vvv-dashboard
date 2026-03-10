@@ -112,7 +112,7 @@
       const queue = daily.map(d => Number(d.queue_amount || 0));
       const initiated = daily.map(d => Number(d.initiated_amount || 0));
       const unlocks = daily.map(d => Number(d.unlock_amount || 0));
-      const staked = daily.map(d => Number(d.staked_amount || 0));
+      const stakedUsers = daily.map(d => Number(d.staked_users || 0));
       const rawPrice = daily.map(d => d.vvv_price_usd === null || d.vvv_price_usd === undefined ? null : Number(d.vvv_price_usd));
       const price = [];
       let last = null;
@@ -259,12 +259,12 @@
 
       new Chart(document.getElementById('stakeChart'), {
         type: 'bar',
-        data: { labels, datasets: [{ label: 'New Stakes', data: staked, backgroundColor: '#10b981' }] },
+        data: { labels, datasets: [{ label: 'New Stakes', data: stakedUsers, backgroundColor: '#10b981' }] },
         options: {
           plugins: { legend: { labels: { color: legendColor } } },
           scales: {
             x: { ticks: { color: axisColor, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 }, grid: { color: gridColor } },
-            y: { ticks: { color: axisColor }, grid: { color: gridColor } }
+            y: { ticks: { color: axisColor, precision: 0 }, grid: { color: gridColor }, title: { display: true, text: 'Unique Stakers', color: axisColor } }
           }
         }
       });
