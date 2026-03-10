@@ -17,6 +17,7 @@ headers = {'X-DUNE-API-KEY': API_KEY, 'Content-Type': 'application/json'}
 svvv = '0x321b7ff75154472B18EDb199033fF4D116F340Ff'
 vvv = '0xACFE6019Ed1A7Dc6f7B508C02D1b04eC88cC21BF'
 method = '0xae5ac921'
+stake_method = '0xb6b55f25'
 zero = '0x0000000000000000000000000000000000000000'
 dead = '0x000000000000000000000000000000000000dEaD'
 etherscan_base = 'https://api.etherscan.io/v2/api'
@@ -121,6 +122,41 @@ SELECT
   (SELECT COALESCE(SUM(amount),0) FROM tx WHERE block_time > now() - interval '7' day) AS initiated_last_7d
 """
 
+sql_stake = f"""
+WITH tx AS (
+  SELECT
+    block_time,
+    bytearray_to_uint256(bytearray_substring(data, 5, 32)) / 1e18 AS amount
+  FROM base.transactions
+  WHERE
+    to = {svvv}
+    AND bytearray_substring(data, 1, 4) = {stake_method}
+    AND block_time >= now() - interval '30' day
+),
+
+_days AS (
+  SELECT day
+  FROM unnest(sequence(
+    CAST(date_trunc('day', now() - interval '30' day) AS date),
+    CAST(date_trunc('day', now()) AS date),
+    interval '1' day
+  )) AS t(day)
+),
+
+daily_staked AS (
+  SELECT CAST(date_trunc('day', block_time) AS date) AS day, SUM(amount) AS staked_amount
+  FROM tx
+  GROUP BY 1
+)
+
+SELECT
+  d.day,
+  COALESCE(s.staked_amount, 0) AS staked_amount
+FROM _days d
+LEFT JOIN daily_staked s ON d.day = s.day
+ORDER BY d.day;
+"""
+
 
 
 def exec_sql(sql):
@@ -161,16 +197,20 @@ def fetch_etherscan(params):
 
 r1 = exec_sql(sql1)
 r2 = exec_sql(sql2)
+r_stake = exec_sql(sql_stake)
 r3 = None
 r4 = None
 
-for r in (r1, r2):
+for r in (r1, r2, r_stake):
     st = poll(r['execution_id'])
     if st['state'] != 'QUERY_STATE_COMPLETED':
         raise SystemExit(f"Query failed: {st}")
 
 res1 = results(r1['execution_id'])
 res2 = results(r2['execution_id'])
+res_stake = results(r_stake['execution_id'])
+
+stake_map = {r['day']: r.get('staked_amount', 0) for r in res_stake.get('result', {}).get('rows', [])}
 
 price_rows = {}
 try:
@@ -229,6 +269,7 @@ rows = res1['result']['rows']
 for r in rows:
     r['vvv_price_usd'] = price_rows.get(r['day'])
     r['trade_volume_usd'] = vol_rows.get(r['day'])
+    r['staked_amount'] = stake_map.get(r['day'], 0)
 
 # Default values from known VVV token distribution
 supply_summary = {

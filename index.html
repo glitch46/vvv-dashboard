@@ -62,6 +62,7 @@
     <div class="grid charts" style="margin-top:16px;">
       <div class="panel"><canvas id="initUnlockChart"></canvas></div>
       <div class="panel"><canvas id="initChart"></canvas></div>
+      <div class="panel"><canvas id="stakeChart"></canvas></div>
       <div class="panel" id="forecastPanel">
         <div class="forecast-header">
           <span class="forecast-title">Upcoming Unlocks (Next 7 Days)</span>
@@ -73,6 +74,7 @@
 
     <div class="panel" id="howToRead" style="margin-top:16px;">
       <strong>How to read this:</strong><br>
+      • <strong>Staked</strong> = when a user deposits VVV into sVVV (tokens become locked)<br>
       • <strong>Initiated</strong> = when a user called <code>initiateUnstake</code> (cooldown starts)<br>
       • <strong>Unlock</strong> = 7 days after initiation (cooldown ends, tokens become transferable)<br>
       • <strong>Queue</strong> = total sVVV currently in cooldown (sum of last 7 days of initiations)<br><br>
@@ -106,6 +108,7 @@
       const queue = daily.map(d => Number(d.queue_amount || 0));
       const initiated = daily.map(d => Number(d.initiated_amount || 0));
       const unlocks = daily.map(d => Number(d.unlock_amount || 0));
+      const staked = daily.map(d => Number(d.staked_amount || 0));
       const rawPrice = daily.map(d => d.vvv_price_usd === null || d.vvv_price_usd === undefined ? null : Number(d.vvv_price_usd));
       const price = [];
       let last = null;
@@ -216,6 +219,18 @@
       new Chart(document.getElementById('initChart'), {
         type: 'bar',
         data: { labels, datasets: [{ label: 'Initiated (Cooldown Starts)', data: initiated, backgroundColor: '#3b82f6' }] },
+        options: {
+          plugins: { legend: { labels: { color: legendColor } } },
+          scales: {
+            x: { ticks: { color: axisColor, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 }, grid: { color: gridColor } },
+            y: { ticks: { color: axisColor }, grid: { color: gridColor } }
+          }
+        }
+      });
+
+      new Chart(document.getElementById('stakeChart'), {
+        type: 'bar',
+        data: { labels, datasets: [{ label: 'Staked (Tokens Locked)', data: staked, backgroundColor: '#10b981' }] },
         options: {
           plugins: { legend: { labels: { color: legendColor } } },
           scales: {
