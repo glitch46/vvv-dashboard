@@ -126,12 +126,12 @@ sql_stake = f"""
 WITH transfer AS (
   SELECT
     block_time,
-    bytearray_to_uint256(bytearray_substring(data, 37, 32)) / 1e18 AS amount
-  FROM base.transactions
+    bytearray_to_uint256(data) / 1e18 AS amount
+  FROM base.logs
   WHERE
-    to = {vvv}
-    AND bytearray_substring(data, 1, 4) = '0xa9059cbb'
-    AND bytearray_substring(data, 17, 20) = {svvv}
+    contract_address = {vvv}
+    AND topic0 = 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef
+    AND topic2 = 0x000000000000000000000000321b7ff75154472b18edb199033ff4d116f340ff
     AND block_time >= now() - interval '30' day
 ),
 
