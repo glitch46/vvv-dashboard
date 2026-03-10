@@ -111,6 +111,7 @@
       const labels = daily.map(d => d.day);
       const queue = daily.map(d => Number(d.queue_amount || 0));
       const initiated = daily.map(d => Number(d.initiated_amount || 0));
+      const initiatedUsers = daily.map(d => Number(d.initiated_users || 0));
       const unlocks = daily.map(d => Number(d.unlock_amount || 0));
       const stakedAmount = daily.map(d => Number(d.staked_amount || 0));
       const stakedUsers = daily.map(d => Number(d.staked_users || 0));
@@ -250,7 +251,15 @@
         type: 'bar',
         data: { labels, datasets: [{ label: 'Initiated (Cooldown Starts)', data: initiated, backgroundColor: '#3b82f6' }] },
         options: {
-          plugins: { legend: { labels: { color: legendColor } } },
+          plugins: {
+            legend: { labels: { color: legendColor } },
+            tooltip: {
+              callbacks: {
+                label: (context) => `Initiated amount: ${fmt(context.raw)} VVV`,
+                afterLabel: (context) => `Unique unstakers: ${initiatedUsers[context.dataIndex] || 0}`
+              }
+            }
+          },
           scales: {
             x: { ticks: { color: axisColor, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 }, grid: { color: gridColor } },
             y: { ticks: { color: axisColor }, grid: { color: gridColor } }

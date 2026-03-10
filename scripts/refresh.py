@@ -26,6 +26,7 @@ sql1 = f"""
 WITH tx AS (
   SELECT
     block_time,
+    "from" AS unstaker,
     bytearray_to_uint256(bytearray_substring(data, 5, 32)) / 1e18 AS amount
   FROM base.transactions
   WHERE
@@ -44,7 +45,10 @@ _days AS (
 ),
 
 initiated AS (
-  SELECT CAST(date_trunc('day', block_time) AS date) AS day, SUM(amount) AS initiated_amount
+  SELECT
+    CAST(date_trunc('day', block_time) AS date) AS day,
+    SUM(amount) AS initiated_amount,
+    COUNT(DISTINCT unstaker) AS initiated_users
   FROM tx
   GROUP BY 1
 ),
@@ -68,6 +72,7 @@ queue AS (
 SELECT
   d.day,
   COALESCE(i.initiated_amount, 0) AS initiated_amount,
+  COALESCE(i.initiated_users, 0) AS initiated_users,
   COALESCE(u.unlock_amount, 0) AS unlock_amount,
   COALESCE(q.queue_amount, 0) AS queue_amount
 FROM _days d
