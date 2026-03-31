@@ -7,49 +7,94 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
     :root {
-      --bg: #0b0f18;
-      --panel: #111827;
-      --panel-2: #0f172a;
-      --text: #e6edf7;
-      --muted: #94a3b8;
-      --accent: #3b82f6;
-      --accent-2: #22d3ee;
-      --grid: #1f2937;
-      --border: #1e293b;
+      --bg: #0A0A0A;
+      --panel: #1A1A1A;
+      --panel-2: #1E1E1E;
+      --text: #E8E4DE;
+      --text-warm: #F0ECE6;
+      --muted: #7A7A72;
+      --accent: #F5A623;
+      --accent-hover: #E8853D;
+      --accent-dim: rgba(245,166,35,0.08);
+      --positive: #4CAF7D;
+      --negative: #CF6679;
+      --grid: rgba(255,255,255,0.04);
+      --border: rgba(255,255,255,0.06);
+      --border-hover: rgba(255,255,255,0.12);
     }
-    body { margin:0; font-family: Inter, system-ui, sans-serif; background: var(--bg); color: var(--text); }
-    .container { max-width: 1200px; margin: 0 auto; padding: 32px; }
-    h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: .2px; font-weight: 600; }
-    .subtitle { color: var(--muted); margin-bottom: 24px; }
-    .grid { display: grid; gap: 16px; }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-weight: 300;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    /* Ambient warm glow */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -180px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 900px;
+      height: 600px;
+      background: radial-gradient(ellipse at center, rgba(245,166,35,0.07) 0%, rgba(232,133,61,0.03) 40%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .container { max-width: 1200px; margin: 0 auto; padding: 48px 32px; position: relative; z-index: 1; }
+    h1 { margin: 0 0 8px; font-size: 32px; letter-spacing: -0.01em; font-weight: 500; color: var(--text-warm); }
+    .subtitle { color: var(--muted); margin-bottom: 40px; font-size: 15px; font-weight: 300; line-height: 1.6; }
+    .grid { display: grid; gap: 20px; }
     .kpis { grid-template-columns: repeat(4, minmax(0,1fr)); }
-    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px; box-shadow: none; }
-    .kpi-title { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
-    .kpi-value { font-size: 26px; margin-top: 6px; font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-    .kpi-delta { font-size: 12px; margin-top: 4px; color: var(--accent-2); }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      transition: border-color 0.2s ease, background 0.2s ease;
+    }
+    .panel:hover { border-color: var(--border-hover); }
+    .kpi-title { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; font-weight: 400; }
+    .kpi-value { font-size: 28px; margin-top: 8px; font-variant-numeric: tabular-nums; font-weight: 400; font-family: Inter, system-ui, sans-serif; color: var(--text-warm); }
+    .kpi-delta { font-size: 12px; margin-top: 6px; color: var(--accent); font-weight: 400; }
     .charts { grid-template-columns: 1fr; }
     .forecast-list { list-style: none; margin: 0; padding: 0; }
-    .forecast-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .forecast-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border); transition: background 0.2s ease; }
     .forecast-item:last-child { border-bottom: none; }
-    .forecast-date { color: var(--muted); font-size: 13px; }
-    .forecast-amount { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 16px; font-weight: 600; }
-    .forecast-change { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 13px; margin-left: 12px; }
-    .forecast-change.positive { color: var(--accent-2); }
-    .forecast-change.negative { color: #ef4444; }
-    .forecast-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
-    .forecast-title { font-size: 14px; font-weight: 600; }
+    .forecast-item:hover { background: rgba(255,255,255,0.02); }
+    .forecast-date { color: var(--muted); font-size: 13px; font-weight: 400; }
+    .forecast-amount { font-family: Inter, system-ui, sans-serif; font-size: 16px; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--text-warm); }
+    .forecast-change { font-family: Inter, system-ui, sans-serif; font-size: 13px; margin-left: 12px; font-variant-numeric: tabular-nums; }
+    .forecast-change.positive { color: var(--positive); }
+    .forecast-change.negative { color: var(--negative); }
+    .forecast-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+    .forecast-title { font-size: 15px; font-weight: 500; color: var(--text-warm); }
     @media (max-width: 900px) { .kpis { grid-template-columns: repeat(2,1fr);} }
     @media (max-width: 600px) {
-      .container { padding: 20px; }
-      h1 { font-size: 22px; }
-      .subtitle { font-size: 13px; line-height: 1.4; }
+      .container { padding: 24px 16px; }
+      h1 { font-size: 24px; }
+      .subtitle { font-size: 13px; line-height: 1.5; margin-bottom: 28px; }
       .kpis { grid-template-columns: 1fr; }
-      .panel { padding: 12px; }
-      .kpi-value { font-size: 22px; }
+      .panel { padding: 16px; border-radius: 12px; }
+      .kpi-value { font-size: 24px; }
       canvas { max-height: 260px; }
     }
-    .footer { color: var(--muted); font-size: 12px; margin-top: 18px; }
-    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .footer { color: var(--muted); font-size: 12px; margin-top: 48px; line-height: 1.7; font-weight: 300; }
+    .footer a { color: var(--accent); text-decoration: none; transition: color 0.2s ease; }
+    .footer a:hover { color: var(--accent-hover); }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 0.9em; color: var(--accent); }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+    /* How-to-read panel styling */
+    #howToRead { color: var(--muted); font-size: 14px; line-height: 1.8; font-weight: 300; }
+    #howToRead strong { color: var(--text); font-weight: 500; }
   </style>
 </head>
 <body>
@@ -59,7 +104,7 @@
 
     <div class="grid kpis" id="kpis"></div>
 
-    <div class="grid charts" style="margin-top:16px;">
+    <div class="grid charts" style="margin-top:24px;">
       <div class="panel"><canvas id="initUnlockChart"></canvas></div>
       <div class="panel"><canvas id="buySellChart"></canvas></div>
       <div class="panel"><canvas id="initChart"></canvas></div>
@@ -73,7 +118,7 @@
       </div>
     </div>
 
-    <div class="panel" id="howToRead" style="margin-top:16px;">
+    <div class="panel" id="howToRead" style="margin-top:24px;">
       <strong>How to read this:</strong><br>
       • <strong>Staked</strong> = when a user deposits VVV into sVVV (tokens become locked)<br>
       • <strong>Initiated</strong> = when a user called <code>initiateUnstake</code> (cooldown starts)<br>
@@ -84,7 +129,7 @@
 
     <div class="footer">
       Data refresh: every 6 hours. Sources: Dune (unstaking via sVVV), CoinGecko (price). Public dashboard uses static JSON with no embedded keys.<br>
-      Made with ❤️ by <a href="https://x.com/Papacit0e" target="_blank" rel="noopener" style="color: var(--accent); text-decoration: none;">Papacito</a>
+      Made with ❤️ by <a href="https://x.com/Papacit0e" target="_blank" rel="noopener">Papacito</a>
     </div>
   </div>
 
@@ -148,9 +193,21 @@
         kpiContainer.appendChild(div);
       });
 
-      const axisColor = '#94a3b8';
-      const gridColor = '#1f2937';
-      const legendColor = '#e6edf7';
+      const axisColor = '#7A7A72';
+      const gridColor = 'rgba(255,255,255,0.04)';
+      const legendColor = '#E8E4DE';
+
+      // Global Chart.js defaults for Venice aesthetic
+      Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
+      Chart.defaults.font.weight = 300;
+      Chart.defaults.plugins.tooltip.backgroundColor = '#1E1E1E';
+      Chart.defaults.plugins.tooltip.borderColor = 'rgba(255,255,255,0.08)';
+      Chart.defaults.plugins.tooltip.borderWidth = 1;
+      Chart.defaults.plugins.tooltip.titleColor = '#F0ECE6';
+      Chart.defaults.plugins.tooltip.bodyColor = '#E8E4DE';
+      Chart.defaults.plugins.tooltip.cornerRadius = 8;
+      Chart.defaults.plugins.tooltip.padding = 12;
+      Chart.defaults.plugins.legend.labels.font = { family: 'Inter, system-ui, sans-serif', weight: 300, size: 12 };
 
       const priceNums = price.filter(v => v !== null && v !== undefined);
       const priceMin = priceNums.length ? Math.min(...priceNums) : 0;
@@ -201,9 +258,9 @@
       new Chart(document.getElementById('initUnlockChart'), {
         type: 'line',
         data: { labels: extendedLabels, datasets: [
-          { label: 'Unlocks (Tokens Become Transferable)', data: extendedUnlocks, borderColor: '#22d3ee', backgroundColor: 'rgba(34,211,238,0.12)', fill: true, tension: 0.2, yAxisID: 'y' },
-          { label: 'Avg Daily Unlocks (30d)', data: extendedAvgUnlock, borderColor: '#3b82f6', borderDash: [6,6], pointRadius: 0, tension: 0, yAxisID: 'y' },
-          { label: 'VVV Price (USD)', data: extendedPrice, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.10)', fill: false, tension: 0.2, yAxisID: 'y1', borderWidth: 2, pointRadius: 2, spanGaps: true }
+          { label: 'Unlocks (Tokens Become Transferable)', data: extendedUnlocks, borderColor: '#F5A623', backgroundColor: 'rgba(245,166,35,0.12)', fill: true, tension: 0.3, yAxisID: 'y', borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#F5A623' },
+          { label: 'Avg Daily Unlocks (30d)', data: extendedAvgUnlock, borderColor: '#7A7A72', borderDash: [6,6], pointRadius: 0, tension: 0, yAxisID: 'y', borderWidth: 1.5 },
+          { label: 'VVV Price (USD)', data: extendedPrice, borderColor: '#E8853D', backgroundColor: 'rgba(232,133,61,0.08)', fill: false, tension: 0.3, yAxisID: 'y1', borderWidth: 2, pointRadius: 2, pointBackgroundColor: '#E8853D', spanGaps: true }
         ]},
         options: {
           plugins: { legend: { labels: { color: legendColor } } },
@@ -232,13 +289,13 @@
       new Chart(document.getElementById('buySellChart'), {
         type: 'bar',
         data: { labels: last14, datasets: [
-          { label: 'Buy Volume (USD)', data: last14Buy, backgroundColor: '#22c55e', borderRadius: 4 },
-          { label: 'Sell Volume (USD)', data: last14Sell, backgroundColor: '#ef4444', borderRadius: 4 }
+          { label: 'Buy Volume (USD)', data: last14Buy, backgroundColor: '#4CAF7D', borderRadius: 6 },
+          { label: 'Sell Volume (USD)', data: last14Sell, backgroundColor: '#CF6679', borderRadius: 6 }
         ]},
         options: {
           plugins: { 
             legend: { labels: { color: legendColor } },
-            title: { display: true, text: 'Daily Buy/Sell Volume (14 Days)', color: legendColor, font: { size: 14 } }
+            title: { display: true, text: 'Daily Buy/Sell Volume (14 Days)', color: legendColor, font: { size: 14, weight: 400 } }
           },
           scales: {
             x: { ticks: { color: axisColor, maxRotation: 45, autoSkip: true, maxTicksLimit: 14 }, grid: { color: gridColor }, stacked: false },
@@ -249,7 +306,7 @@
 
       new Chart(document.getElementById('initChart'), {
         type: 'bar',
-        data: { labels, datasets: [{ label: 'Initiated (Cooldown Starts)', data: initiated, backgroundColor: '#3b82f6' }] },
+        data: { labels, datasets: [{ label: 'Initiated (Cooldown Starts)', data: initiated, backgroundColor: 'rgba(245,166,35,0.65)', borderRadius: 6 }] },
         options: {
           plugins: {
             legend: { labels: { color: legendColor } },
@@ -269,7 +326,7 @@
 
       new Chart(document.getElementById('stakeChart'), {
         type: 'bar',
-        data: { labels, datasets: [{ label: 'New Stakes', data: stakedAmount, backgroundColor: '#10b981' }] },
+        data: { labels, datasets: [{ label: 'New Stakes', data: stakedAmount, backgroundColor: 'rgba(76,175,125,0.65)', borderRadius: 6 }] },
         options: {
           plugins: {
             legend: { labels: { color: legendColor } },
@@ -320,7 +377,7 @@
 
         const distContainer = document.createElement('div');
         distContainer.className = 'panel';
-        distContainer.style.marginTop = '16px';
+        distContainer.style.marginTop = '24px';
         distContainer.innerHTML = `
           <div class="forecast-header">
             <span class="forecast-title">VVV Token Distribution</span>
