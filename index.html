@@ -7,6 +7,20 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
+    @font-face {
+      font-family: 'VeniceBridge';
+      src: url('Assets/Fonts/VeniceBridge.otf') format('opentype');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'VeniceClassic';
+      src: url('Assets/Fonts/VeniceClassic.ttf') format('truetype');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
     :root {
       --bg: #0A0A0A;
       --panel: #1A1A1A;
@@ -26,7 +40,7 @@
     *, *::before, *::after { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: Inter, system-ui, -apple-system, sans-serif;
+      font-family: 'VeniceClassic', Georgia, serif;
       background: var(--bg);
       color: var(--text);
       font-weight: 300;
@@ -66,12 +80,44 @@
       z-index: 0;
     }
     .container { max-width: 1200px; margin: 0 auto; padding: 48px 32px; position: relative; z-index: 1; }
-    h1 { margin: 0 0 8px; font-size: 32px; letter-spacing: -0.01em; font-weight: 500; color: var(--text-warm); }
-    .subtitle { color: var(--muted); margin-bottom: 40px; font-size: 15px; font-weight: 300; line-height: 1.6; }
+    .title-kicker {
+      margin: 0;
+      color: rgba(240,236,230,0.88);
+      text-transform: uppercase;
+      letter-spacing: 0.34em;
+      font-size: 11px;
+      line-height: 1.2;
+      text-align: center;
+      text-shadow: 0 4px 12px rgba(0,0,0,0.35);
+    }
+    h1 {
+      margin: 14px 0 10px;
+      font-family: 'VeniceBridge', Georgia, serif;
+      font-size: clamp(50px, 10.4vw, 126px);
+      line-height: 0.8;
+      letter-spacing: 0.02em;
+      font-weight: 400;
+      text-transform: uppercase;
+      text-align: center;
+      color: #f1dfcb;
+      text-shadow: 0 1px 0 rgba(0,0,0,0.28), 0 12px 30px rgba(0,0,0,0.28);
+    }
+    .title-line { display: block; }
+    .subtitle {
+      color: rgba(240,236,230,0.92);
+      margin: 12px 0 42px;
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 1.75;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+      text-align: center;
+      text-shadow: 0 4px 14px rgba(0,0,0,0.34);
+    }
     .grid { display: grid; gap: 20px; }
     .kpis { grid-template-columns: repeat(4, minmax(0,1fr)); }
     .panel {
-      background: var(--panel);
+      background: transparent;
       border: 1px solid var(--border);
       border-radius: 14px;
       padding: 24px;
@@ -79,7 +125,7 @@
     }
     .panel:hover { border-color: var(--border-hover); }
     .kpi-title { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; font-weight: 400; }
-    .kpi-value { font-size: 28px; margin-top: 8px; font-variant-numeric: tabular-nums; font-weight: 400; font-family: Inter, system-ui, sans-serif; color: var(--text-warm); }
+    .kpi-value { font-size: 28px; margin-top: 8px; font-variant-numeric: tabular-nums; font-weight: 400; font-family: 'VeniceClassic', Georgia, serif; color: var(--text-warm); }
     .kpi-delta { font-size: 12px; margin-top: 6px; color: var(--accent); font-weight: 400; }
     .charts { grid-template-columns: 1fr; }
     .forecast-list { list-style: none; margin: 0; padding: 0; }
@@ -87,8 +133,8 @@
     .forecast-item:last-child { border-bottom: none; }
     .forecast-item:hover { background: rgba(255,255,255,0.02); }
     .forecast-date { color: var(--muted); font-size: 13px; font-weight: 400; }
-    .forecast-amount { font-family: Inter, system-ui, sans-serif; font-size: 16px; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--text-warm); }
-    .forecast-change { font-family: Inter, system-ui, sans-serif; font-size: 13px; margin-left: 12px; font-variant-numeric: tabular-nums; }
+    .forecast-amount { font-family: 'VeniceClassic', Georgia, serif; font-size: 16px; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--text-warm); }
+    .forecast-change { font-family: 'VeniceClassic', Georgia, serif; font-size: 13px; margin-left: 12px; font-variant-numeric: tabular-nums; }
     .forecast-change.positive { color: var(--positive); }
     .forecast-change.negative { color: var(--negative); }
     .forecast-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
@@ -96,8 +142,9 @@
     @media (max-width: 900px) { .kpis { grid-template-columns: repeat(2,1fr);} }
     @media (max-width: 600px) {
       .container { padding: 24px 16px; }
-      h1 { font-size: 24px; }
-      .subtitle { font-size: 13px; line-height: 1.5; margin-bottom: 28px; }
+      h1 { letter-spacing: 0.01em; line-height: 0.84; }
+      .title-kicker { letter-spacing: 0.24em; font-size: 10px; }
+      .subtitle { font-size: 12px; line-height: 1.58; margin-bottom: 28px; letter-spacing: 0.08em; }
       .kpis { grid-template-columns: 1fr; }
       .panel { padding: 16px; border-radius: 12px; }
       .kpi-value { font-size: 24px; }
@@ -131,8 +178,9 @@
   </video>
   <div class="bg-overlay" aria-hidden="true"></div>
   <div class="container">
-    <h1>Venice Token : Unstaking / Staking Analytics</h1>
-    <div class="subtitle">sVVV initiateUnstake on Base. 7-day cooldown before tokens become freely transferable. Updated every 4 hours.</div>
+    <p class="title-kicker">Classic Modern Serif</p>
+    <h1><span class="title-line">Venice</span><span class="title-line">Bridge</span></h1>
+    <div class="subtitle">Carefully crafted unstaking and staking analytics on base. 7-day cooldown before tokens become freely transferable. Updated every 4 hours.</div>
 
     <div class="grid kpis" id="kpis"></div>
 
@@ -267,7 +315,7 @@
       const legendColor = '#E8E4DE';
 
       // Global Chart.js defaults for Venice aesthetic
-      Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
+      Chart.defaults.font.family = 'VeniceClassic, Georgia, serif';
       Chart.defaults.font.weight = 300;
       Chart.defaults.plugins.tooltip.backgroundColor = '#1E1E1E';
       Chart.defaults.plugins.tooltip.borderColor = 'rgba(255,255,255,0.08)';
@@ -276,7 +324,7 @@
       Chart.defaults.plugins.tooltip.bodyColor = '#E8E4DE';
       Chart.defaults.plugins.tooltip.cornerRadius = 8;
       Chart.defaults.plugins.tooltip.padding = 12;
-      Chart.defaults.plugins.legend.labels.font = { family: 'Inter, system-ui, sans-serif', weight: 300, size: 12 };
+      Chart.defaults.plugins.legend.labels.font = { family: 'VeniceClassic, Georgia, serif', weight: 300, size: 12 };
 
       const priceNums = price.filter(v => v !== null && v !== undefined);
       const priceMin = priceNums.length ? Math.min(...priceNums) : 0;
