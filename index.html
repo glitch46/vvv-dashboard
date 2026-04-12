@@ -27,7 +27,7 @@
       --panel-2: #1E1E1E;
       --text: #E8E4DE;
       --text-warm: #F0ECE6;
-      --muted: #7A7A72;
+      --muted: #B3AD9F;
       --accent: #F5A623;
       --accent-hover: #E8853D;
       --accent-dim: rgba(245,166,35,0.08);
@@ -80,39 +80,27 @@
       z-index: 0;
     }
     .container { max-width: 1200px; margin: 0 auto; padding: 48px 32px; position: relative; z-index: 1; }
-    .title-kicker {
-      margin: 0;
-      color: rgba(240,236,230,0.88);
-      text-transform: uppercase;
-      letter-spacing: 0.34em;
-      font-size: 11px;
-      line-height: 1.2;
-      text-align: center;
-      text-shadow: 0 4px 12px rgba(0,0,0,0.35);
-    }
     h1 {
-      margin: 14px 0 10px;
+      margin: 0 0 12px;
       font-family: 'VeniceBridge', Georgia, serif;
-      font-size: clamp(50px, 10.4vw, 126px);
-      line-height: 0.8;
-      letter-spacing: 0.02em;
+      font-size: clamp(40px, 5.2vw, 78px);
+      line-height: 1.06;
+      letter-spacing: 0.012em;
       font-weight: 400;
-      text-transform: uppercase;
       text-align: center;
-      color: #f1dfcb;
-      text-shadow: 0 1px 0 rgba(0,0,0,0.28), 0 12px 30px rgba(0,0,0,0.28);
+      white-space: nowrap;
+      color: #F8EBDD;
+      text-shadow: 0 1px 0 rgba(0,0,0,0.28), 0 10px 28px rgba(0,0,0,0.46);
     }
-    .title-line { display: block; }
     .subtitle {
-      color: rgba(240,236,230,0.92);
+      color: rgba(248,235,221,0.96);
       margin: 12px 0 42px;
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 400;
-      line-height: 1.75;
-      letter-spacing: 0.13em;
-      text-transform: uppercase;
+      line-height: 1.7;
+      letter-spacing: 0.06em;
       text-align: center;
-      text-shadow: 0 4px 14px rgba(0,0,0,0.34);
+      text-shadow: 0 4px 14px rgba(0,0,0,0.44);
     }
     .grid { display: grid; gap: 20px; }
     .kpis { grid-template-columns: repeat(4, minmax(0,1fr)); }
@@ -142,9 +130,8 @@
     @media (max-width: 900px) { .kpis { grid-template-columns: repeat(2,1fr);} }
     @media (max-width: 600px) {
       .container { padding: 24px 16px; }
-      h1 { letter-spacing: 0.01em; line-height: 0.84; }
-      .title-kicker { letter-spacing: 0.24em; font-size: 10px; }
-      .subtitle { font-size: 12px; line-height: 1.58; margin-bottom: 28px; letter-spacing: 0.08em; }
+      h1 { white-space: normal; font-size: clamp(32px, 9vw, 42px); line-height: 1.1; }
+      .subtitle { font-size: 13px; line-height: 1.55; margin-bottom: 28px; letter-spacing: 0.03em; }
       .kpis { grid-template-columns: 1fr; }
       .panel { padding: 16px; border-radius: 12px; }
       .kpi-value { font-size: 24px; }
@@ -168,7 +155,6 @@
   <video
     class="bg-video"
     id="bgVideo"
-    autoplay
     muted
     loop
     playsinline
@@ -178,8 +164,7 @@
   </video>
   <div class="bg-overlay" aria-hidden="true"></div>
   <div class="container">
-    <p class="title-kicker">Classic Modern Serif</p>
-    <h1><span class="title-line">Venice</span><span class="title-line">Bridge</span></h1>
+    <h1>Venice Token : Unstaking / Staking Analytics</h1>
     <div class="subtitle">Carefully crafted unstaking and staking analytics on base. 7-day cooldown before tokens become freely transferable. Updated every 4 hours.</div>
 
     <div class="grid kpis" id="kpis"></div>
@@ -208,7 +193,7 @@
     </div>
 
     <div class="footer">
-      Data refresh: every 4 hours. Sources: <a href="https://dune.com" target="_blank" rel="noopener">Dune</a> (unstaking/staking transactions, DEX volumes), <a href="https://www.coingecko.com" target="_blank" rel="noopener">CoinGecko</a> (VVV price), <a href="https://basescan.org" target="_blank" rel="noopener">Basescan</a> (token supply distribution). Public dashboard uses static JSON with no embedded keys.<br>
+      Data refresh: every 4 hours. Sources: <a href="https://dune.com" target="_blank" rel="noopener">Dune</a> (unstaking/staking flows and DEX buy/sell volumes), <a href="https://www.coingecko.com" target="_blank" rel="noopener">CoinGecko</a> (VVV price), <a href="https://etherscan.io/apis" target="_blank" rel="noopener">Etherscan V2</a> on Base / Basescan-compatible endpoints (token supply distribution). Public dashboard uses static JSON with no embedded keys.<br>
       Made with ❤️ by <a href="https://x.com/Papacit0e" target="_blank" rel="noopener">Papacito</a>
     </div>
   </div>
@@ -243,8 +228,11 @@
     }
 
     if (bgVideo) {
-      bgVideo.addEventListener('loadeddata', () => {
+      bgVideo.pause();
+      bgVideo.currentTime = 0;
+      bgVideo.addEventListener('loadedmetadata', () => {
         pauseBackgroundVideo();
+        bgVideo.currentTime = 0;
       }, { once: true });
       window.addEventListener('scroll', handleScrollPlayback, { passive: true });
       window.addEventListener('wheel', handleScrollPlayback, { passive: true });
