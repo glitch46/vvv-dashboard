@@ -32,6 +32,25 @@
       font-weight: 300;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+    }
+    .bg-video {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      z-index: -2;
+      pointer-events: none;
+      opacity: 0.85;
+    }
+    .bg-overlay {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(0,0,0,0.58) 0%, rgba(0,0,0,0.72) 70%, rgba(0,0,0,0.78) 100%);
+      z-index: -1;
+      pointer-events: none;
     }
     /* Ambient warm glow */
     body::before {
@@ -99,6 +118,18 @@
   </style>
 </head>
 <body>
+  <video
+    class="bg-video"
+    id="bgVideo"
+    autoplay
+    muted
+    loop
+    playsinline
+    preload="metadata"
+  >
+    <source src="Assets/Background.mp4" type="video/mp4" />
+  </video>
+  <div class="bg-overlay" aria-hidden="true"></div>
   <div class="container">
     <h1>Venice Token : Unstaking / Staking Analytics</h1>
     <div class="subtitle">sVVV initiateUnstake on Base. 7-day cooldown before tokens become freely transferable. Updated every 4 hours.</div>
@@ -135,6 +166,43 @@
   </div>
 
   <script>
+    const bgVideo = document.getElementById('bgVideo');
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let scrollStopTimer = null;
+
+    function pauseBackgroundVideo() {
+      if (!bgVideo || bgVideo.paused) return;
+      bgVideo.pause();
+    }
+
+    function playBackgroundVideo() {
+      if (!bgVideo || prefersReducedMotion) return;
+      if (!bgVideo.paused) return;
+      const playPromise = bgVideo.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => {
+          // Ignore autoplay interruption errors and wait for next scroll gesture.
+        });
+      }
+    }
+
+    function handleScrollPlayback() {
+      playBackgroundVideo();
+      if (scrollStopTimer) clearTimeout(scrollStopTimer);
+      scrollStopTimer = setTimeout(() => {
+        pauseBackgroundVideo();
+      }, 150);
+    }
+
+    if (bgVideo) {
+      bgVideo.addEventListener('loadeddata', () => {
+        pauseBackgroundVideo();
+      }, { once: true });
+      window.addEventListener('scroll', handleScrollPlayback, { passive: true });
+      window.addEventListener('wheel', handleScrollPlayback, { passive: true });
+      window.addEventListener('touchmove', handleScrollPlayback, { passive: true });
+    }
+
     async function loadJSON(path) {
       const res = await fetch(path, { cache: 'no-cache' });
       return res.json();
