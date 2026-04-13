@@ -87,18 +87,40 @@
       z-index: 0;
     }
     .container { max-width: 1200px; margin: 0 auto; padding: 48px 32px; position: relative; z-index: 1; }
-    h1 {
+    .hero-title {
       margin: 0 0 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .hero-title-svg {
+      width: min(100%, 1000px);
+      height: auto;
+      overflow: visible;
+      filter: drop-shadow(0 2px 0 rgba(255,255,255,0.15)) drop-shadow(0 10px 26px rgba(0,0,0,0.54));
+    }
+    .hero-title-svg text {
       font-family: 'charpentierrenred-normal', Georgia, serif;
-      font-size: clamp(40px, 6vw, 82px);
-      line-height: 1.04;
-      letter-spacing: 0.04em;
+      font-size: 190px;
       font-weight: 400;
-      text-align: center;
-      white-space: normal;
+      letter-spacing: 10px;
       text-transform: uppercase;
-      color: #F3EFE8;
-      text-shadow: 0 1px 0 rgba(255,255,255,0.15), 0 4px 0 rgba(0,0,0,0.3), 0 14px 30px rgba(0,0,0,0.5);
+      paint-order: stroke fill;
+      fill: rgba(243,239,232,0);
+      stroke: #F3EFE8;
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-dasharray: 2300;
+      stroke-dashoffset: 2300;
+      animation: venice-write-on 4.8s cubic-bezier(0.2, 0.7, 0, 1) forwards, venice-fill-on 1.3s ease forwards;
+      animation-delay: 0s, 3.8s;
+    }
+    @keyframes venice-write-on {
+      to { stroke-dashoffset: 0; }
+    }
+    @keyframes venice-fill-on {
+      to { fill: #F3EFE8; }
     }
     .hero-subtitle {
       color: rgba(220,206,187,0.96);
@@ -138,12 +160,19 @@
     @media (max-width: 900px) { .kpis { grid-template-columns: repeat(2,1fr);} }
     @media (max-width: 600px) {
       .container { padding: 24px 16px; }
-      h1 { font-size: clamp(32px, 10vw, 46px); line-height: 1.06; }
+      .hero-title-svg text { font-size: 136px; letter-spacing: 6px; stroke-width: 1.8; }
       .hero-subtitle { font-size: clamp(15px, 5.2vw, 21px); margin-bottom: 28px; }
       .kpis { grid-template-columns: 1fr; }
       .panel { padding: 16px; border-radius: 12px; }
       .kpi-value { font-size: 24px; }
       canvas { max-height: 260px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .hero-title-svg text {
+        animation: none;
+        stroke-dashoffset: 0;
+        fill: #F3EFE8;
+      }
     }
     .footer { color: var(--muted); font-size: 12px; margin-top: 48px; line-height: 1.7; font-weight: 300; }
     .footer a { color: var(--accent); text-decoration: none; transition: color 0.2s ease; }
@@ -172,7 +201,11 @@
   </video>
   <div class="bg-overlay" aria-hidden="true"></div>
   <div class="container">
-    <h1>Venice Token</h1>
+    <h1 class="hero-title" aria-label="Venice Token">
+      <svg class="hero-title-svg" viewBox="0 0 1800 300" role="img" aria-hidden="true" focusable="false">
+        <text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle">Venice Token</text>
+      </svg>
+    </h1>
     <div class="hero-subtitle">Unstaking / Staking Analytics</div>
 
     <div class="grid kpis" id="kpis"></div>
