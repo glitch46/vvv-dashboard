@@ -157,6 +157,13 @@
     .forecast-change.negative { color: var(--negative); }
     .forecast-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
     .forecast-title { font-size: 15px; font-weight: 500; color: var(--text-warm); }
+    .legend-hint {
+      margin: 10px 0 0;
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.03em;
+    }
     @media (max-width: 900px) { .kpis { grid-template-columns: repeat(2,1fr);} }
     @media (max-width: 600px) {
       .container { padding: 24px 16px; }
@@ -209,6 +216,7 @@
     <div class="hero-subtitle">Unstaking / Staking Analytics</div>
 
     <div class="grid kpis" id="kpis"></div>
+    <div class="legend-hint">Click on a legend item to show/hide</div>
 
     <div class="grid charts" style="margin-top:24px;">
       <div class="panel"><canvas id="initUnlockChart"></canvas></div>
