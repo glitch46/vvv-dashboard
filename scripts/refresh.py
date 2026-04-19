@@ -4,6 +4,8 @@ import json, urllib.request, urllib.parse, time, os, datetime
 API_KEY = os.environ['DUNE_API_KEY']
 CG_KEY = os.environ.get('COINGECKO_API_KEY')
 ETHERSCAN_KEY = os.environ.get('ETHERSCAN_API_KEY')
+POLL_ATTEMPTS = int(os.environ.get('DUNE_POLL_ATTEMPTS', '180'))
+POLL_INTERVAL_SECONDS = float(os.environ.get('DUNE_POLL_INTERVAL_SECONDS', '2'))
 LOCKED_ADDRS = [
     '0x2d8cb8dc596dad0e1e34e2042e7ae6df93b11524',
     '0x4665883f3adb708f301ba75764d39ad0cd2a4d84',
@@ -178,13 +180,13 @@ def exec_sql(sql):
 
 def poll(eid):
     st = {'state': None}
-    for _ in range(60):
+    for _ in range(POLL_ATTEMPTS):
         req = urllib.request.Request(f'https://api.dune.com/api/v1/execution/{eid}/status', headers={'X-DUNE-API-KEY': API_KEY})
         with urllib.request.urlopen(req) as resp:
             st = json.loads(resp.read().decode('utf-8'))
         if st.get('state') in ('QUERY_STATE_COMPLETED', 'QUERY_STATE_FAILED', 'QUERY_STATE_CANCELLED'):
             return st
-        time.sleep(2)
+        time.sleep(POLL_INTERVAL_SECONDS)
     return st
 
 
@@ -262,14 +264,7 @@ try:
     with urllib.request.urlopen(req) as resp:
         rv = json.loads(resp.read().decode('utf-8'))
     exec_id = rv['execution_id']
-    st = {'state': None}
-    for _ in range(60):
-        req = urllib.request.Request(f'https://api.dune.com/api/v1/execution/{exec_id}/status', headers={'X-DUNE-API-KEY': API_KEY})
-        with urllib.request.urlopen(req) as resp:
-            st = json.loads(resp.read().decode('utf-8'))
-        if st.get('state') in ('QUERY_STATE_COMPLETED', 'QUERY_STATE_FAILED', 'QUERY_STATE_CANCELLED'):
-            break
-        time.sleep(2)
+    st = poll(exec_id)
     if st.get('state') == 'QUERY_STATE_COMPLETED':
         req = urllib.request.Request(f'https://api.dune.com/api/v1/execution/{exec_id}/results', headers={'X-DUNE-API-KEY': API_KEY})
         with urllib.request.urlopen(req) as resp:
