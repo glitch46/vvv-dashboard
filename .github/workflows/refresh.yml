@@ -20,11 +20,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Fetch data from Dune
+      - name: Fetch data from APIs
         env:
           DUNE_API_KEY: ${{ secrets.DUNE_API_KEY }}
           COINGECKO_API_KEY: ${{ secrets.COINGECKO_API_KEY }}
-          ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
+          VENICE_API_KEY: ${{ secrets.VENICE_API_KEY }}
           VVV_LOCKED_ADDRESSES: ${{ secrets.VVV_LOCKED_ADDRESSES }}
           VVV_BURN_ADDRESSES: ${{ secrets.VVV_BURN_ADDRESSES }}
         run: python scripts/refresh.py

@@ -3,7 +3,8 @@ import json, urllib.request, urllib.parse, time, os, datetime
 
 API_KEY = os.environ['DUNE_API_KEY']
 CG_KEY = os.environ.get('COINGECKO_API_KEY')
-ETHERSCAN_KEY = os.environ.get('ETHERSCAN_API_KEY')
+VENICE_API_KEY = os.environ.get('VENICE_API_KEY')
+VENICE_RPC_URL = os.environ.get('VENICE_RPC_URL', 'https://api.venice.ai/api/v1/crypto/rpc/base-mainnet')
 POLL_ATTEMPTS = int(os.environ.get('DUNE_POLL_ATTEMPTS', '180'))
 POLL_INTERVAL_SECONDS = float(os.environ.get('DUNE_POLL_INTERVAL_SECONDS', '2'))
 LOCKED_ADDRS = [
@@ -21,8 +22,8 @@ vvv = '0xACFE6019Ed1A7Dc6f7B508C02D1b04eC88cC21BF'
 method = '0xae5ac921'
 zero = '0x0000000000000000000000000000000000000000'
 dead = '0x000000000000000000000000000000000000dEaD'
-etherscan_base = 'https://api.etherscan.io/v2/api'
-chain_id = '8453'
+total_supply_selector = '0x18160ddd'
+balance_of_selector = '0x70a08231'
 
 sql1 = f"""
 WITH tx AS (
@@ -196,15 +197,52 @@ def results(eid):
         return json.loads(resp.read().decode('utf-8'))
 
 
-def fetch_etherscan(params):
-    if not ETHERSCAN_KEY:
-        raise RuntimeError('ETHERSCAN_API_KEY not set')
-    params['apikey'] = ETHERSCAN_KEY
-    params['chainid'] = chain_id
-    url = etherscan_base + '?' + urllib.parse.urlencode(params)
-    req = urllib.request.Request(url)
+def venice_rpc(payload):
+    if not VENICE_API_KEY:
+        raise RuntimeError('VENICE_API_KEY not set')
+    body = json.dumps(payload).encode('utf-8')
+    req = urllib.request.Request(
+        VENICE_RPC_URL,
+        data=body,
+        headers={
+            'Authorization': f'Bearer {VENICE_API_KEY}',
+            'Content-Type': 'application/json'
+        },
+        method='POST'
+    )
     with urllib.request.urlopen(req) as resp:
-        return json.loads(resp.read().decode('utf-8'))
+        out = json.loads(resp.read().decode('utf-8'))
+    if isinstance(out, dict) and out.get('error'):
+        raise RuntimeError(f"Venice RPC error: {out['error']}")
+    return out
+
+
+def to_rpc_address(address):
+    cleaned = address.strip().lower()
+    if cleaned.startswith('0x'):
+        cleaned = cleaned[2:]
+    if len(cleaned) != 40:
+        raise ValueError(f'Invalid address: {address}')
+    return '0x' + cleaned
+
+
+def read_uint256_call(contract, data):
+    payload = {
+        'jsonrpc': '2.0',
+        'method': 'eth_call',
+        'params': [{'to': to_rpc_address(contract), 'data': data}, 'latest'],
+        'id': 1
+    }
+    res = venice_rpc(payload)
+    result = res.get('result')
+    if not isinstance(result, str) or not result.startswith('0x'):
+        raise RuntimeError(f'Unexpected eth_call response: {res}')
+    return int(result, 16) / 1e18
+
+
+def balance_of_call(address):
+    padded = to_rpc_address(address)[2:].rjust(64, '0')
+    return read_uint256_call(vvv, balance_of_selector + padded)
 
 
 r1 = exec_sql(sql1)
@@ -297,44 +335,18 @@ supply_summary = {
     'burned_supply': 33680000.0  # ~42.75% of total
 }
 try:
-    total = fetch_etherscan({
-        'module': 'stats',
-        'action': 'tokensupply',
-        'contractaddress': vvv
-    })
-    total_supply = float(total.get('result', 0)) / 1e18
+    total_supply = read_uint256_call(vvv, total_supply_selector)
 
     locked_supply = 0.0
     for addr in LOCKED_ADDRS:
-        bal = fetch_etherscan({
-            'module': 'account',
-            'action': 'tokenbalance',
-            'contractaddress': vvv,
-            'address': addr,
-            'tag': 'latest'
-        })
-        locked_supply += float(bal.get('result', 0)) / 1e18
+        locked_supply += balance_of_call(addr)
 
-    staked = fetch_etherscan({
-        'module': 'account',
-        'action': 'tokenbalance',
-        'contractaddress': vvv,
-        'address': svvv,
-        'tag': 'latest'
-    })
-    staked_supply = float(staked.get('result', 0)) / 1e18
+    staked_supply = balance_of_call(svvv)
 
     burn_targets = [zero, dead] + BURN_ADDRS
     burned_supply = 0.0
     for addr in burn_targets:
-        burn = fetch_etherscan({
-            'module': 'account',
-            'action': 'tokenbalance',
-            'contractaddress': vvv,
-            'address': addr,
-            'tag': 'latest'
-        })
-        burned_supply += float(burn.get('result', 0)) / 1e18
+        burned_supply += balance_of_call(addr)
 
     circ_supply = max(total_supply - locked_supply - staked_supply - burned_supply, 0)
 
@@ -371,9 +383,9 @@ try:
         'circ_supply': circ_supply,
         'burned_supply': burned_supply
     }
-    print("Fetched supply data from Basescan (Etherscan V2)")
+    print("Fetched supply data from Venice Crypto RPC (Base)")
 except Exception as e:
-    print(f"ERROR fetching Basescan supply data: {e}")
+    print(f"ERROR fetching Venice RPC supply data: {e}")
 
 os.makedirs('data', exist_ok=True)
 with open('data/daily.json', 'w') as f:
