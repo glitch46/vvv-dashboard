@@ -526,36 +526,6 @@
         forecastList.appendChild(li);
       });
 
-      // Token Distribution
-      try {
-        const supplyArr = await loadJSON('data/supply.json');
-        const supply = supplyArr[0] || {};
-        const total = Number(supply.total_supply || 78.78e6);
-        const staked = Number(supply.staked_supply || 0);
-        const locked = Number(supply.locked_supply || 0);
-        const burned = Number(supply.burned_supply || 0);
-        const circ = Number(supply.circ_supply || 0);
-
-        const distContainer = document.createElement('div');
-        distContainer.className = 'panel';
-        distContainer.style.marginTop = '24px';
-        distContainer.innerHTML = `
-          <div class="forecast-header">
-            <span class="forecast-title">VVV Token Distribution</span>
-            <span style="color: var(--muted); font-size: 12px;">Total Supply: ${fmt(total)} VVV</span>
-          </div>
-          <ul class="forecast-list">
-            <li class="forecast-item"><span class="forecast-date">Staked (sVVV)</span><span class="forecast-amount">${fmt(staked)} VVV</span></li>
-            <li class="forecast-item"><span class="forecast-date">Freely Tradeable</span><span class="forecast-amount">${fmt(circ)} VVV</span></li>
-            <li class="forecast-item"><span class="forecast-date">Locked</span><span class="forecast-amount">${fmt(locked)} VVV</span></li>
-            <li class="forecast-item"><span class="forecast-date">Burned</span><span class="forecast-amount">${fmt(burned)} VVV</span></li>
-          </ul>
-        `;
-        document.querySelector('.container').insertBefore(distContainer, document.getElementById('howToRead'));
-      } catch (e) {
-        console.log('Supply data not available');
-      }
-
     })();
   </script>
 </body>
