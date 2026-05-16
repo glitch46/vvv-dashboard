@@ -1,8 +1,8 @@
 [
   {
-    "avg_daily_initiated_30d": 57066.535477985104,
-    "avg_queue_amount_30d": 400520.9307175492,
-    "current_queue_amount": 1185301.5932245678,
-    "initiated_last_7d": 1010102.2182983147
+    "avg_daily_initiated_30d": 57070.95116226392,
+    "avg_queue_amount_30d": 400518.5660456715,
+    "current_queue_amount": 1185468.506728762,
+    "initiated_last_7d": 967813.117555393
   }
 ]
