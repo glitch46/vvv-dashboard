@@ -226,6 +226,7 @@
 
     <div class="grid charts" style="margin-top:24px;">
       <div class="panel"><canvas id="initUnlockChart"></canvas></div>
+      <div class="panel"><canvas id="netFlowsChart"></canvas></div>
       <div class="panel"><canvas id="buySellChart"></canvas></div>
       <div class="panel"><canvas id="initChart"></canvas></div>
       <div class="panel"><canvas id="stakeChart"></canvas></div>
@@ -435,6 +436,59 @@
               title: { display: true, text: 'Price (USD)', color: axisColor },
               suggestedMin: priceMin * 0.9,
               suggestedMax: priceMax * 1.1
+            }
+          }
+        }
+      });
+
+      const netFlows = stakedAmount.map((amount, index) => amount - unlocks[index]);
+      const netFlowAverage = netFlows.map((_, index) => {
+        const windowStart = Math.max(0, index - 6);
+        const window = netFlows.slice(windowStart, index + 1);
+        return window.reduce((sum, value) => sum + value, 0) / window.length;
+      });
+
+      new Chart(document.getElementById('netFlowsChart'), {
+        data: {
+          labels,
+          datasets: [
+            {
+              type: 'bar',
+              label: 'Daily Net Flow',
+              data: netFlows,
+              backgroundColor: netFlows.map(value => value >= 0 ? 'rgba(76,175,125,0.72)' : 'rgba(207,102,121,0.72)'),
+              borderColor: netFlows.map(value => value >= 0 ? '#4CAF7D' : '#CF6679'),
+              borderWidth: 1,
+              borderRadius: 5
+            },
+            {
+              type: 'line',
+              label: '7-Day Rolling Average',
+              data: netFlowAverage,
+              borderColor: '#F5A623',
+              backgroundColor: 'transparent',
+              borderWidth: 2,
+              pointRadius: 0,
+              tension: 0.3
+            }
+          ]
+        },
+        options: {
+          plugins: {
+            legend: { labels: { color: legendColor } },
+            title: { display: true, text: 'Net Flows ( New Stakes - Unlocks)', color: legendColor, font: { size: 14, weight: 400 } },
+            tooltip: {
+              callbacks: {
+                label: (context) => `${context.dataset.label}: ${fmt(context.raw)} VVV`
+              }
+            }
+          },
+          scales: {
+            x: { ticks: { color: axisColor, maxRotation: 0, autoSkip: true, maxTicksLimit: 12 }, grid: { color: gridColor } },
+            y: {
+              ticks: { color: axisColor, callback: (value) => fmt(value) },
+              grid: { color: (context) => context.tick.value === 0 ? 'rgba(255,255,255,0.24)' : gridColor },
+              title: { display: true, text: 'Net VVV Flow', color: axisColor }
             }
           }
         }
