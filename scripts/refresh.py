@@ -264,23 +264,35 @@ stake_amount_map = {r['day']: r.get('staked_amount', 0) for r in res_stake.get('
 stake_users_map = {r['day']: r.get('staked_users', 0) for r in res_stake.get('result', {}).get('rows', [])}
 
 price_rows = {}
-try:
-    if CG_KEY:
-        url = 'https://api.coingecko.com/api/v3/coins/venice-token/market_chart'
-        params = 'vs_currency=usd&days=30&interval=daily'
-        req = urllib.request.Request(url + '?' + params, headers={'x-cg-pro-api-key': CG_KEY})
-    else:
-        url = 'https://api.coingecko.com/api/v3/coins/venice-token/market_chart?vs_currency=usd&days=30&interval=daily'
-        req = urllib.request.Request(url)
+def fetch_cg_price(extra_headers=None, label=''):
+    global price_rows
+    url = 'https://api.coingecko.com/api/v3/coins/venice-token/market_chart'
+    params = 'vs_currency=usd&days=30&interval=daily'
+    hdrs = {'User-Agent': 'vvv-dashboard'}
+    if extra_headers:
+        hdrs.update(extra_headers)
+    req = urllib.request.Request(url + '?' + params, headers=hdrs)
     with urllib.request.urlopen(req) as resp:
         cg = json.loads(resp.read().decode('utf-8'))
     for ts, price in cg.get('prices', []):
         day = datetime.datetime.utcfromtimestamp(ts / 1000).strftime('%Y-%m-%d')
         price_rows[day] = price
-    print(f"Fetched {len(price_rows)} price points from CoinGecko")
-except Exception as e:
-    print(f"ERROR fetching CoinGecko price: {e}")
-    price_rows = {}
+    print(f"Fetched {len(price_rows)} price points from CoinGecko{label}")
+
+# Try demo key header first (free tier key), then pro key header, then no key
+cg_attempts = []
+if CG_KEY:
+    cg_attempts.append(({'x-cg-demo-api-key': CG_KEY}, ' (demo key)'))
+    cg_attempts.append(({'x-cg-pro-api-key': CG_KEY}, ' (pro key)'))
+cg_attempts.append((None, ' (free tier)'))
+
+for hdr, label in cg_attempts:
+    try:
+        fetch_cg_price(hdr, label)
+        break
+    except Exception as e:
+        print(f"CoinGecko attempt{label} failed: {e}")
+        price_rows = {}
 
 vol_rows = {}
 buy_rows = {}
