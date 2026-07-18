@@ -478,7 +478,16 @@
             title: { display: true, text: 'Net Flows ( New Stakes - Unlocks)', color: legendColor, font: { size: 14, weight: 400 } },
             tooltip: {
               callbacks: {
-                label: (context) => `${context.dataset.label}: ${fmt(context.raw)} VVV`
+                label: (context) => `${context.dataset.label}: ${fmt(context.raw)} VVV`,
+                afterLabel: (context) => {
+                  if (context.datasetIndex === 0) {
+                    const p = price[context.dataIndex];
+                    const stakes = stakedAmount[context.dataIndex];
+                    const usd = p ? stakes * p : null;
+                    return usd ? `New stakes value: $${fmt(usd)}` : '';
+                  }
+                  return '';
+                }
               }
             }
           },
@@ -523,7 +532,13 @@
             tooltip: {
               callbacks: {
                 label: (context) => `VVV staked: ${fmt(context.raw)} VVV`,
-                afterLabel: (context) => `New unique stakers: ${stakedUsers[context.dataIndex] || 0}`
+                afterLabel: (context) => {
+                  const lines = [`New unique stakers: ${stakedUsers[context.dataIndex] || 0}`];
+                  const p = price[context.dataIndex];
+                  const usd = p ? context.raw * p : null;
+                  if (usd) lines.push(`New stakes value: $${fmt(usd)}`);
+                  return lines;
+                }
               }
             }
           },
