@@ -7,6 +7,8 @@ Static GitHub Pages dashboard that refreshes every 4 hours via GitHub Actions.
 - `data/summary.json`: current queue vs averages
 - `data/supply.json`: current supply breakdown used by pie chart
 
+Staking and unstaking series come from Base RPC logs (`Staked` and `UnstakeInitiated` on sVVV). Dune is optional and only used for DEX volume when the API key can still execute queries.
+
 ## Refresh
 GitHub Actions runs every 4 hours and overwrites the JSON files.
 

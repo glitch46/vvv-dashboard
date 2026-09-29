@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-import json, urllib.request, urllib.parse, time, os, datetime
+import json, urllib.request, urllib.error, time, os, datetime
+from collections import defaultdict
 
-API_KEY = os.environ['DUNE_API_KEY']
+API_KEY = os.environ.get('DUNE_API_KEY')
 CG_KEY = os.environ.get('COINGECKO_API_KEY')
 VENICE_API_KEY = os.environ.get('VENICE_API_KEY')
 VENICE_RPC_URL = os.environ.get('VENICE_RPC_URL', 'https://api.venice.ai/api/v1/crypto/rpc/base-mainnet')
 POLL_ATTEMPTS = int(os.environ.get('DUNE_POLL_ATTEMPTS', '180'))
 POLL_INTERVAL_SECONDS = float(os.environ.get('DUNE_POLL_INTERVAL_SECONDS', '2'))
+LOOKBACK_DAYS = int(os.environ.get('VVV_LOOKBACK_DAYS', '37'))
 LOCKED_ADDRS = [
     '0x2d8cb8dc596dad0e1e34e2042e7ae6df93b11524',
     '0x4665883f3adb708f301ba75764d39ad0cd2a4d84',
@@ -16,205 +18,89 @@ LOCKED_ADDRS = [
 ]
 LOCKED_ADDRS += [a.strip() for a in os.environ.get('VVV_LOCKED_ADDRESSES', '').split(',') if a.strip()]
 BURN_ADDRS = [a.strip() for a in os.environ.get('VVV_BURN_ADDRESSES', '').split(',') if a.strip()]
-headers = {'X-DUNE-API-KEY': API_KEY, 'Content-Type': 'application/json'}
 svvv = '0x321b7ff75154472B18EDb199033fF4D116F340Ff'
 vvv = '0xACFE6019Ed1A7Dc6f7B508C02D1b04eC88cC21BF'
-method = '0xae5ac921'
 zero = '0x0000000000000000000000000000000000000000'
 dead = '0x000000000000000000000000000000000000dEaD'
 total_supply_selector = '0x18160ddd'
 balance_of_selector = '0x70a08231'
+STAKE_TOPIC = '0x9e71bc8eea02a63969f509818f2dafb9254532904319f9dbda79b67bd34a5f3d'
+UNSTAKE_TOPIC = '0xc606a9f55fc42cd3159fcfc8ddcd749dd21c4574cca0b68a5a65d5f984b6c42c'
 
-sql1 = f"""
-WITH tx AS (
-  SELECT
-    block_time,
-    "from" AS unstaker,
-    bytearray_to_uint256(bytearray_substring(data, 5, 32)) / 1e18 AS amount
-  FROM base.transactions
-  WHERE
-    to = {svvv}
-    AND bytearray_substring(data, 1, 4) = {method}
-    AND block_time >= now() - interval '30' day
-),
-
-_days AS (
-  SELECT day
-  FROM unnest(sequence(
-    CAST(date_trunc('day', now() - interval '30' day) AS date),
-    CAST(date_trunc('day', now()) AS date),
-    interval '1' day
-  )) AS t(day)
-),
-
-initiated AS (
-  SELECT
-    CAST(date_trunc('day', block_time) AS date) AS day,
-    SUM(amount) AS initiated_amount,
-    COUNT(DISTINCT unstaker) AS initiated_users
-  FROM tx
-  GROUP BY 1
-),
-
-unlocks AS (
-  SELECT CAST(date_trunc('day', block_time + interval '7' day) AS date) AS day, SUM(amount) AS unlock_amount
-  FROM tx
-  GROUP BY 1
-),
-
-queue AS (
-  SELECT d.day,
-    SUM(t.amount) AS queue_amount
-  FROM _days d
-  LEFT JOIN tx t
-    ON t.block_time > CAST(d.day AS timestamp) - interval '7' day
-   AND t.block_time <= CAST(d.day AS timestamp) + interval '1' day
-  GROUP BY 1
-)
-
-SELECT
-  d.day,
-  COALESCE(i.initiated_amount, 0) AS initiated_amount,
-  COALESCE(i.initiated_users, 0) AS initiated_users,
-  COALESCE(u.unlock_amount, 0) AS unlock_amount,
-  COALESCE(q.queue_amount, 0) AS queue_amount
-FROM _days d
-LEFT JOIN initiated i ON d.day = i.day
-LEFT JOIN unlocks u ON d.day = u.day
-LEFT JOIN queue q ON d.day = q.day
-ORDER BY d.day;
-"""
-
-sql2 = f"""
-WITH tx AS (
-  SELECT
-    block_time,
-    bytearray_to_uint256(bytearray_substring(data, 5, 32)) / 1e18 AS amount
-  FROM base.transactions
-  WHERE
-    to = {svvv}
-    AND bytearray_substring(data, 1, 4) = {method}
-    AND block_time >= now() - interval '30' day
-),
-
-_days AS (
-  SELECT day
-  FROM unnest(sequence(
-    CAST(date_trunc('day', now() - interval '30' day) AS date),
-    CAST(date_trunc('day', now()) AS date),
-    interval '1' day
-  )) AS t(day)
-),
-
-queue AS (
-  SELECT d.day,
-    SUM(t.amount) AS queue_amount
-  FROM _days d
-  LEFT JOIN tx t
-    ON t.block_time > CAST(d.day AS timestamp) - interval '7' day
-   AND t.block_time <= CAST(d.day AS timestamp) + interval '1' day
-  GROUP BY 1
-),
-
-daily_initiated AS (
-  SELECT CAST(date_trunc('day', block_time) AS date) AS day, SUM(amount) AS initiated_amount
-  FROM tx
-  GROUP BY 1
-)
-
-SELECT
-  (SELECT queue_amount FROM queue ORDER BY day DESC LIMIT 1) AS current_queue_amount,
-  (SELECT AVG(queue_amount) FROM queue) AS avg_queue_amount_30d,
-  (SELECT AVG(initiated_amount) FROM daily_initiated) AS avg_daily_initiated_30d,
-  (SELECT COALESCE(SUM(amount),0) FROM tx WHERE block_time > now() - interval '7' day) AS initiated_last_7d
-"""
-
-sql_stake = f"""
-WITH transfer AS (
-  SELECT
-    block_time,
-    topic1 AS staker,
-    bytearray_to_uint256(data) / 1e18 AS amount
-  FROM base.logs
-  WHERE
-    contract_address = {vvv}
-    AND topic0 = 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef
-    AND topic2 = 0x000000000000000000000000321b7ff75154472b18edb199033ff4d116f340ff
-    AND block_time >= now() - interval '30' day
-),
-
-_days AS (
-  SELECT day
-  FROM unnest(sequence(
-    CAST(date_trunc('day', now() - interval '30' day) AS date),
-    CAST(date_trunc('day', now()) AS date),
-    interval '1' day
-  )) AS t(day)
-),
-
-daily_staked AS (
-  SELECT
-    CAST(date_trunc('day', block_time) AS date) AS day,
-    SUM(amount) AS staked_amount,
-    COUNT(DISTINCT staker) AS staked_users
-  FROM transfer
-  GROUP BY 1
-)
-
-SELECT
-  d.day,
-  COALESCE(s.staked_amount, 0) AS staked_amount,
-  COALESCE(s.staked_users, 0) AS staked_users
-FROM _days d
-LEFT JOIN daily_staked s ON d.day = s.day
-ORDER BY d.day;
-"""
-
-
-
-def exec_sql(sql):
-    data = json.dumps({"sql": sql, "performance": "medium"}).encode('utf-8')
-    req = urllib.request.Request('https://api.dune.com/api/v1/sql/execute', data=data, headers=headers, method='POST')
-    with urllib.request.urlopen(req) as resp:
-        return json.loads(resp.read().decode('utf-8'))
-
-
-def poll(eid):
-    st = {'state': None}
-    for _ in range(POLL_ATTEMPTS):
-        req = urllib.request.Request(f'https://api.dune.com/api/v1/execution/{eid}/status', headers={'X-DUNE-API-KEY': API_KEY})
-        with urllib.request.urlopen(req) as resp:
-            st = json.loads(resp.read().decode('utf-8'))
-        if st.get('state') in ('QUERY_STATE_COMPLETED', 'QUERY_STATE_FAILED', 'QUERY_STATE_CANCELLED'):
-            return st
-        time.sleep(POLL_INTERVAL_SECONDS)
-    return st
-
-
-def results(eid):
-    req = urllib.request.Request(f'https://api.dune.com/api/v1/execution/{eid}/results', headers={'X-DUNE-API-KEY': API_KEY})
-    with urllib.request.urlopen(req) as resp:
-        return json.loads(resp.read().decode('utf-8'))
-
-
-def venice_rpc(payload):
-    if not VENICE_API_KEY:
-        raise RuntimeError('VENICE_API_KEY not set')
-    body = json.dumps(payload).encode('utf-8')
-    req = urllib.request.Request(
-        VENICE_RPC_URL,
-        data=body,
-        headers={
+RPC_CANDIDATES = []
+if VENICE_API_KEY:
+    RPC_CANDIDATES.append({
+        'name': 'venice',
+        'url': VENICE_RPC_URL,
+        'headers': {
             'Authorization': f'Bearer {VENICE_API_KEY}',
             'Content-Type': 'application/json'
         },
-        method='POST'
-    )
-    with urllib.request.urlopen(req) as resp:
-        out = json.loads(resp.read().decode('utf-8'))
-    if isinstance(out, dict) and out.get('error'):
-        raise RuntimeError(f"Venice RPC error: {out['error']}")
-    return out
+        'chunk': int(os.environ.get('VENICE_LOG_CHUNK', '20000'))
+    })
+RPC_CANDIDATES.append({
+    'name': 'base',
+    'url': os.environ.get('BASE_RPC_URL', 'https://mainnet.base.org'),
+    'headers': {'Content-Type': 'application/json', 'User-Agent': 'vvv-dashboard'},
+    'chunk': int(os.environ.get('BASE_LOG_CHUNK', '2000'))
+})
+
+_active_rpc = None
+
+
+def http_json(url, payload=None, extra_headers=None, method=None, timeout=60):
+    headers = {'Content-Type': 'application/json', 'User-Agent': 'vvv-dashboard'}
+    if extra_headers:
+        headers.update(extra_headers)
+    data = json.dumps(payload).encode('utf-8') if payload is not None else None
+    req = urllib.request.Request(url, data=data, headers=headers, method=method or ('POST' if data else 'GET'))
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return json.loads(resp.read().decode('utf-8'))
+    except urllib.error.HTTPError as e:
+        body = e.read().decode('utf-8', errors='replace')
+        raise RuntimeError(f'HTTP {e.code} {e.reason} for {url}: {body[:800]}') from e
+
+
+def is_rate_limit(err):
+    msg = str(err).lower()
+    return '429' in msg or 'rate limit' in msg or 'too many requests' in msg
+
+
+def is_range_issue(err):
+    msg = str(err).lower()
+    if is_rate_limit(err):
+        return False
+    return any(x in msg for x in ('range', 'limited to', 'archive', 'query returned more', 'block range'))
+
+
+def rpc(payload, timeout=60):
+    global _active_rpc
+    order = []
+    if _active_rpc:
+        order.append(_active_rpc)
+    for cand in RPC_CANDIDATES:
+        if cand not in order:
+            order.append(cand)
+    last_err = None
+    for cand in order:
+        for attempt in range(5):
+            try:
+                out = http_json(cand['url'], payload, cand['headers'], timeout=timeout)
+                if isinstance(out, dict) and out.get('error'):
+                    raise RuntimeError(f"{cand['name']} RPC error: {out['error']}")
+                _active_rpc = cand
+                return out
+            except Exception as e:
+                last_err = e
+                if is_rate_limit(e) and attempt < 4:
+                    time.sleep(min(2 ** (attempt + 1), 16))
+                    continue
+                if _active_rpc is cand:
+                    _active_rpc = None
+                print(f"RPC {cand['name']} failed: {e}")
+                break
+    raise last_err or RuntimeError('No RPC endpoint available')
 
 
 def to_rpc_address(address):
@@ -227,13 +113,12 @@ def to_rpc_address(address):
 
 
 def read_uint256_call(contract, data):
-    payload = {
+    res = rpc({
         'jsonrpc': '2.0',
         'method': 'eth_call',
         'params': [{'to': to_rpc_address(contract), 'data': data}, 'latest'],
         'id': 1
-    }
-    res = venice_rpc(payload)
+    })
     result = res.get('result')
     if not isinstance(result, str) or not result.startswith('0x'):
         raise RuntimeError(f'Unexpected eth_call response: {res}')
@@ -245,23 +130,144 @@ def balance_of_call(address):
     return read_uint256_call(vvv, balance_of_selector + padded)
 
 
-r1 = exec_sql(sql1)
-r2 = exec_sql(sql2)
-r_stake = exec_sql(sql_stake)
-r3 = None
-r4 = None
+def get_block(num):
+    res = rpc({
+        'jsonrpc': '2.0',
+        'method': 'eth_getBlockByNumber',
+        'params': [hex(num), False],
+        'id': 1
+    })
+    block = res.get('result')
+    if not block:
+        raise RuntimeError(f'Block {num} not found')
+    return int(block['number'], 16), int(block['timestamp'], 16)
 
-for r in (r1, r2, r_stake):
-    st = poll(r['execution_id'])
-    if st['state'] != 'QUERY_STATE_COMPLETED':
-        raise SystemExit(f"Query failed: {st}")
 
-res1 = results(r1['execution_id'])
-res2 = results(r2['execution_id'])
-res_stake = results(r_stake['execution_id'])
+def get_logs(address, topic, from_block, to_block, chunk):
+    logs = []
+    start = from_block
+    failures = 0
+    while start <= to_block:
+        end = min(start + chunk - 1, to_block)
+        try:
+            res = rpc({
+                'jsonrpc': '2.0',
+                'method': 'eth_getLogs',
+                'params': [{
+                    'address': to_rpc_address(address),
+                    'fromBlock': hex(start),
+                    'toBlock': hex(end),
+                    'topics': [topic]
+                }],
+                'id': 1
+            })
+            batch = res.get('result') or []
+            logs.extend(batch)
+            start = end + 1
+            failures = 0
+            time.sleep(0.02)
+        except Exception as e:
+            if is_range_issue(e) and chunk > 250:
+                chunk = max(chunk // 2, 250)
+                print(f"Reducing log chunk to {chunk}: {e}")
+                continue
+            failures += 1
+            if failures < 5:
+                time.sleep(min(2 ** failures, 16))
+                continue
+            raise
+    return logs
 
-stake_amount_map = {r['day']: r.get('staked_amount', 0) for r in res_stake.get('result', {}).get('rows', [])}
-stake_users_map = {r['day']: r.get('staked_users', 0) for r in res_stake.get('result', {}).get('rows', [])}
+
+def decode_amount_events(logs, from_block, from_ts, avg_block_time):
+    events = []
+    for log in logs:
+        topics = log.get('topics') or []
+        if len(topics) < 2:
+            continue
+        block_num = int(log['blockNumber'], 16)
+        ts = from_ts + (block_num - from_block) * avg_block_time
+        events.append({
+            'ts': ts,
+            'user': '0x' + topics[1][-40:].lower(),
+            'amount': int(log.get('data') or '0x0', 16) / 1e18
+        })
+    return events
+
+
+def load_existing_daily():
+    path = os.path.join('data', 'daily.json')
+    if not os.path.exists(path):
+        return []
+    try:
+        with open(path, encoding='utf-8') as f:
+            rows = json.load(f)
+        return rows if isinstance(rows, list) else []
+    except Exception as e:
+        print(f"Could not read existing daily.json: {e}")
+        return []
+
+
+def day_key(ts):
+    return datetime.datetime.utcfromtimestamp(ts).strftime('%Y-%m-%d')
+
+
+def parse_day(value):
+    if isinstance(value, datetime.date) and not isinstance(value, datetime.datetime):
+        return value
+    return datetime.datetime.strptime(str(value)[:10], '%Y-%m-%d').date()
+
+
+def daterange(start, end):
+    days = []
+    cur = start
+    while cur <= end:
+        days.append(cur)
+        cur += datetime.timedelta(days=1)
+    return days
+
+
+print('Fetching on-chain staking events via RPC')
+latest_num, latest_ts = get_block(int(rpc({
+    'jsonrpc': '2.0',
+    'method': 'eth_blockNumber',
+    'params': [],
+    'id': 1
+})['result'], 16))
+from_block = max(0, latest_num - int(LOOKBACK_DAYS * 86400 / 2))
+try:
+    from_num, from_ts = get_block(from_block)
+except Exception as e:
+    print(f"Lookback block fetch failed ({e}), using 10-day window")
+    from_block = max(0, latest_num - int(10 * 86400 / 2))
+    from_num, from_ts = get_block(from_block)
+
+avg_block_time = (latest_ts - from_ts) / max(latest_num - from_num, 1)
+chunk = (_active_rpc or RPC_CANDIDATES[-1])['chunk']
+print(f"RPC={(_active_rpc or {}).get('name')} blocks={from_num}->{latest_num} chunk={chunk}")
+
+unstake_logs = get_logs(svvv, UNSTAKE_TOPIC, from_num, latest_num, chunk)
+stake_logs = get_logs(svvv, STAKE_TOPIC, from_num, latest_num, chunk)
+unstake_events = decode_amount_events(unstake_logs, from_num, from_ts, avg_block_time)
+stake_events = decode_amount_events(stake_logs, from_num, from_ts, avg_block_time)
+print(f"Fetched {len(unstake_events)} UnstakeInitiated and {len(stake_events)} Staked events")
+
+initiated_by_day = defaultdict(lambda: {'amount': 0.0, 'users': set()})
+staked_by_day = defaultdict(lambda: {'amount': 0.0, 'users': set()})
+for ev in unstake_events:
+    rec = initiated_by_day[day_key(ev['ts'])]
+    rec['amount'] += ev['amount']
+    rec['users'].add(ev['user'])
+for ev in stake_events:
+    rec = staked_by_day[day_key(ev['ts'])]
+    rec['amount'] += ev['amount']
+    rec['users'].add(ev['user'])
+
+existing = {str(r.get('day'))[:10]: r for r in load_existing_daily() if r.get('day')}
+end_day = datetime.datetime.utcfromtimestamp(latest_ts).date()
+start_day = end_day - datetime.timedelta(days=30)
+fetched_from_day = datetime.datetime.utcfromtimestamp(from_ts).date()
+all_days = daterange(start_day, end_day)
 
 price_rows = {}
 def fetch_cg_price(extra_headers=None, label=''):
@@ -271,21 +277,17 @@ def fetch_cg_price(extra_headers=None, label=''):
     hdrs = {'User-Agent': 'vvv-dashboard'}
     if extra_headers:
         hdrs.update(extra_headers)
-    req = urllib.request.Request(url + '?' + params, headers=hdrs)
-    with urllib.request.urlopen(req) as resp:
-        cg = json.loads(resp.read().decode('utf-8'))
+    cg = http_json(url + '?' + params, extra_headers=hdrs, method='GET')
     for ts, price in cg.get('prices', []):
         day = datetime.datetime.utcfromtimestamp(ts / 1000).strftime('%Y-%m-%d')
         price_rows[day] = price
     print(f"Fetched {len(price_rows)} price points from CoinGecko{label}")
 
-# Try demo key header first (free tier key), then pro key header, then no key
 cg_attempts = []
 if CG_KEY:
     cg_attempts.append(({'x-cg-demo-api-key': CG_KEY}, ' (demo key)'))
     cg_attempts.append(({'x-cg-pro-api-key': CG_KEY}, ' (pro key)'))
 cg_attempts.append((None, ' (free tier)'))
-
 for hdr, label in cg_attempts:
     try:
         fetch_cg_price(hdr, label)
@@ -297,71 +299,122 @@ for hdr, label in cg_attempts:
 vol_rows = {}
 buy_rows = {}
 sell_rows = {}
-try:
-    sqlv = f"""
-    SELECT CAST(date_trunc('day', block_time) AS date) AS day,
-           SUM(amount_usd) AS trade_volume_usd,
-           SUM(CASE WHEN token_bought_address = {vvv} THEN amount_usd ELSE 0 END) AS buy_volume_usd,
-           SUM(CASE WHEN token_sold_address = {vvv} THEN amount_usd ELSE 0 END) AS sell_volume_usd
-    FROM dex.trades
-    WHERE blockchain='base'
-      AND (token_bought_address = {vvv} OR token_sold_address = {vvv})
-      AND block_time >= now() - interval '30' day
-    GROUP BY 1
-    """
-    data = json.dumps({"sql": sqlv, "performance": "medium"}).encode('utf-8')
-    req = urllib.request.Request('https://api.dune.com/api/v1/sql/execute', data=data, headers=headers, method='POST')
-    with urllib.request.urlopen(req) as resp:
-        rv = json.loads(resp.read().decode('utf-8'))
-    exec_id = rv['execution_id']
-    st = poll(exec_id)
-    if st.get('state') == 'QUERY_STATE_COMPLETED':
-        req = urllib.request.Request(f'https://api.dune.com/api/v1/execution/{exec_id}/results', headers={'X-DUNE-API-KEY': API_KEY})
-        with urllib.request.urlopen(req) as resp:
-            resv = json.loads(resp.read().decode('utf-8'))
-        for r in resv.get('result', {}).get('rows', []):
-            vol_rows[r['day']] = r.get('trade_volume_usd')
-            buy_rows[r['day']] = r.get('buy_volume_usd')
-            sell_rows[r['day']] = r.get('sell_volume_usd')
-except Exception as e:
-    print(f"ERROR fetching volume: {e}")
-    vol_rows = {}
-    buy_rows = {}
-    sell_rows = {}
+if API_KEY:
+    try:
+        sqlv = f"""
+        SELECT CAST(date_trunc('day', block_time) AS date) AS day,
+               SUM(amount_usd) AS trade_volume_usd,
+               SUM(CASE WHEN token_bought_address = {vvv} THEN amount_usd ELSE 0 END) AS buy_volume_usd,
+               SUM(CASE WHEN token_sold_address = {vvv} THEN amount_usd ELSE 0 END) AS sell_volume_usd
+        FROM dex.trades
+        WHERE blockchain='base'
+          AND (token_bought_address = {vvv} OR token_sold_address = {vvv})
+          AND block_time >= now() - interval '30' day
+        GROUP BY 1
+        """
+        dune_headers = {'X-DUNE-API-KEY': API_KEY, 'Content-Type': 'application/json'}
+        rv = http_json('https://api.dune.com/api/v1/sql/execute', {"sql": sqlv, "performance": "medium"}, dune_headers)
+        exec_id = rv['execution_id']
+        st = {'state': None}
+        for _ in range(POLL_ATTEMPTS):
+            st = http_json(f'https://api.dune.com/api/v1/execution/{exec_id}/status', extra_headers={'X-DUNE-API-KEY': API_KEY}, method='GET')
+            if st.get('state') in ('QUERY_STATE_COMPLETED', 'QUERY_STATE_FAILED', 'QUERY_STATE_CANCELLED'):
+                break
+            time.sleep(POLL_INTERVAL_SECONDS)
+        if st.get('state') == 'QUERY_STATE_COMPLETED':
+            resv = http_json(f'https://api.dune.com/api/v1/execution/{exec_id}/results', extra_headers={'X-DUNE-API-KEY': API_KEY}, method='GET')
+            for r in resv.get('result', {}).get('rows', []):
+                vol_rows[str(r['day'])[:10]] = r.get('trade_volume_usd')
+                buy_rows[str(r['day'])[:10]] = r.get('buy_volume_usd')
+                sell_rows[str(r['day'])[:10]] = r.get('sell_volume_usd')
+            print(f"Fetched {len(vol_rows)} volume points from Dune")
+        else:
+            print(f"Dune volume query did not complete: {st}")
+    except Exception as e:
+        print(f"ERROR fetching volume: {e}")
+        vol_rows = {}
+        buy_rows = {}
+        sell_rows = {}
+else:
+    print("DUNE_API_KEY not set, skipping volume")
 
-rows = res1['result']['rows']
-for r in rows:
-    r['vvv_price_usd'] = price_rows.get(r['day'])
-    r['trade_volume_usd'] = vol_rows.get(r['day'])
-    r['staked_amount'] = stake_amount_map.get(r['day'], 0)
-    r['staked_users'] = stake_users_map.get(r['day'], 0)
-    r['buy_volume_usd'] = buy_rows.get(r['day'])
-    r['sell_volume_usd'] = sell_rows.get(r['day'])
+initiated_amount = {}
+initiated_users = {}
+staked_amount = {}
+staked_users = {}
+for day in all_days:
+    key = day.isoformat()
+    prev = existing.get(key, {})
+    covered = day >= fetched_from_day
+    if key in initiated_by_day:
+        initiated_amount[key] = initiated_by_day[key]['amount']
+        initiated_users[key] = len(initiated_by_day[key]['users'])
+    elif covered:
+        initiated_amount[key] = 0.0
+        initiated_users[key] = 0
+    else:
+        initiated_amount[key] = float(prev.get('initiated_amount') or 0)
+        initiated_users[key] = int(prev.get('initiated_users') or 0)
+    if key in staked_by_day:
+        staked_amount[key] = staked_by_day[key]['amount']
+        staked_users[key] = len(staked_by_day[key]['users'])
+    elif covered:
+        staked_amount[key] = 0.0
+        staked_users[key] = 0
+    else:
+        staked_amount[key] = float(prev.get('staked_amount') or 0)
+        staked_users[key] = int(prev.get('staked_users') or 0)
 
-# Default values from known VVV token distribution
+rows = []
+for day in all_days:
+    key = day.isoformat()
+    unlock_day = (day - datetime.timedelta(days=7)).isoformat()
+    queue_days = [(day - datetime.timedelta(days=offset)).isoformat() for offset in range(0, 7)]
+    prev = existing.get(key, {})
+    rows.append({
+        'day': key,
+        'initiated_amount': initiated_amount.get(key, 0),
+        'initiated_users': initiated_users.get(key, 0),
+        'queue_amount': sum(initiated_amount.get(d, 0) for d in queue_days),
+        'unlock_amount': initiated_amount.get(unlock_day, 0),
+        'vvv_price_usd': price_rows.get(key, prev.get('vvv_price_usd')),
+        'trade_volume_usd': vol_rows.get(key, prev.get('trade_volume_usd')),
+        'staked_amount': staked_amount.get(key, 0),
+        'staked_users': staked_users.get(key, 0),
+        'buy_volume_usd': buy_rows.get(key, prev.get('buy_volume_usd')),
+        'sell_volume_usd': sell_rows.get(key, prev.get('sell_volume_usd'))
+    })
+
+now_ts = latest_ts
+initiated_last_7d = sum(ev['amount'] for ev in unstake_events if ev['ts'] > now_ts - 7 * 86400)
+if not unstake_events:
+    initiated_last_7d = sum(r['initiated_amount'] for r in rows[-7:])
+nonzero_initiated = [r['initiated_amount'] for r in rows if r['initiated_amount']]
+summary = [{
+    'current_queue_amount': rows[-1]['queue_amount'] if rows else 0,
+    'avg_queue_amount_30d': (sum(r['queue_amount'] for r in rows) / len(rows)) if rows else 0,
+    'avg_daily_initiated_30d': (sum(nonzero_initiated) / len(nonzero_initiated)) if nonzero_initiated else 0,
+    'initiated_last_7d': initiated_last_7d
+}]
+
 supply_summary = {
     'total_supply': 78780000.0,
     'locked_supply': 7870000.0,
     'staked_supply': 31130000.0,
     'circ_supply': 44210000.0,
-    'burned_supply': 33680000.0  # ~42.75% of total
+    'burned_supply': 33680000.0
 }
 try:
     total_supply = read_uint256_call(vvv, total_supply_selector)
-
     locked_supply = 0.0
     for addr in LOCKED_ADDRS:
         locked_supply += balance_of_call(addr)
-
     staked_supply = balance_of_call(svvv)
-
     burn_targets = [zero, dead] + BURN_ADDRS
     burned_supply = 0.0
     for addr in burn_targets:
         burned_supply += balance_of_call(addr)
-
     circ_supply = max(total_supply - locked_supply - staked_supply - burned_supply, 0)
-
     fallback = {
         'total_supply': 78.78e6,
         'locked_supply': 7.87e6,
@@ -375,7 +428,6 @@ try:
         if base == 0:
             return True
         return abs(value - base) / base <= tolerance
-
     if not (within('total_supply', total_supply)
             and within('locked_supply', locked_supply)
             and within('staked_supply', staked_supply)
@@ -387,7 +439,6 @@ try:
         staked_supply = fallback['staked_supply']
         circ_supply = fallback['circ_supply']
         burned_supply = fallback['burned_supply']
-
     supply_summary = {
         'total_supply': total_supply,
         'locked_supply': locked_supply,
@@ -395,16 +446,18 @@ try:
         'circ_supply': circ_supply,
         'burned_supply': burned_supply
     }
-    print("Fetched supply data from Venice Crypto RPC (Base)")
+    print("Fetched supply data from RPC (Base)")
 except Exception as e:
-    print(f"ERROR fetching Venice RPC supply data: {e}")
+    print(f"ERROR fetching RPC supply data: {e}")
 
 os.makedirs('data', exist_ok=True)
-with open('data/daily.json', 'w') as f:
+with open('data/daily.json', 'w', encoding='utf-8') as f:
     f.write(json.dumps(rows, indent=2, default=str))
-with open('data/summary.json', 'w') as f:
-    f.write(json.dumps(res2['result']['rows'], indent=2, default=str))
-with open('data/supply.json', 'w') as f:
+with open('data/summary.json', 'w', encoding='utf-8') as f:
+    f.write(json.dumps(summary, indent=2, default=str))
+with open('data/supply.json', 'w', encoding='utf-8') as f:
     f.write(json.dumps([supply_summary], indent=2, default=str))
 
-print("Data refreshed successfully")
+print(f"Data refreshed successfully through {end_day.isoformat()} ({len(rows)} days)")
+if rows:
+    print(f"Latest initiated={rows[-1]['initiated_amount']:.2f} staked={rows[-1]['staked_amount']:.2f} queue={rows[-1]['queue_amount']:.2f}")
