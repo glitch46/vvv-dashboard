@@ -28,6 +28,12 @@ STAKE_TOPIC = '0x9e71bc8eea02a63969f509818f2dafb9254532904319f9dbda79b67bd34a5f3
 UNSTAKE_TOPIC = '0xc606a9f55fc42cd3159fcfc8ddcd749dd21c4574cca0b68a5a65d5f984b6c42c'
 
 RPC_CANDIDATES = []
+RPC_CANDIDATES.append({
+    'name': 'publicnode',
+    'url': os.environ.get('PUBLICNODE_RPC_URL', 'https://base.publicnode.com'),
+    'headers': {'Content-Type': 'application/json', 'User-Agent': 'vvv-dashboard'},
+    'chunk': int(os.environ.get('PUBLICNODE_LOG_CHUNK', '40000'))
+})
 if VENICE_API_KEY:
     RPC_CANDIDATES.append({
         'name': 'venice',
@@ -36,7 +42,7 @@ if VENICE_API_KEY:
             'Authorization': f'Bearer {VENICE_API_KEY}',
             'Content-Type': 'application/json'
         },
-        'chunk': int(os.environ.get('VENICE_LOG_CHUNK', '20000'))
+        'chunk': int(os.environ.get('VENICE_LOG_CHUNK', '10000'))
     })
 RPC_CANDIDATES.append({
     'name': 'base',
@@ -71,7 +77,7 @@ def is_range_issue(err):
     msg = str(err).lower()
     if is_rate_limit(err):
         return False
-    return any(x in msg for x in ('range', 'limited to', 'archive', 'query returned more', 'block range'))
+    return any(x in msg for x in ('range', 'limited to', 'archive', 'query returned more', 'block range', 'payload too large'))
 
 
 def rpc(payload, timeout=60):
@@ -99,6 +105,27 @@ def rpc(payload, timeout=60):
                 if _active_rpc is cand:
                     _active_rpc = None
                 print(f"RPC {cand['name']} failed: {e}")
+                break
+    raise last_err or RuntimeError('No RPC endpoint available')
+
+
+def rpc_for_logs(payload, pref_cand, timeout=60):
+    """Like rpc() but keeps trying the preferred candidate for range errors."""
+    global _active_rpc
+    last_err = None
+    for cand in [pref_cand] + [c for c in RPC_CANDIDATES if c is not pref_cand]:
+        for attempt in range(4):
+            try:
+                out = http_json(cand['url'], payload, cand['headers'], timeout=timeout)
+                if isinstance(out, dict) and out.get('error'):
+                    raise RuntimeError(f"{cand['name']} RPC error: {out['error']}")
+                _active_rpc = cand
+                return out, cand
+            except Exception as e:
+                last_err = e
+                if is_rate_limit(e) and attempt < 3:
+                    time.sleep(min(2 ** (attempt + 1), 12))
+                    continue
                 break
     raise last_err or RuntimeError('No RPC endpoint available')
 
@@ -143,14 +170,15 @@ def get_block(num):
     return int(block['number'], 16), int(block['timestamp'], 16)
 
 
-def get_logs(address, topic, from_block, to_block, chunk):
+def get_logs(address, topic, from_block, to_block, pref_cand):
     logs = []
     start = from_block
+    chunk = pref_cand['chunk']
     failures = 0
     while start <= to_block:
         end = min(start + chunk - 1, to_block)
         try:
-            res = rpc({
+            res, used = rpc_for_logs({
                 'jsonrpc': '2.0',
                 'method': 'eth_getLogs',
                 'params': [{
@@ -160,16 +188,16 @@ def get_logs(address, topic, from_block, to_block, chunk):
                     'topics': [topic]
                 }],
                 'id': 1
-            })
+            }, pref_cand)
             batch = res.get('result') or []
             logs.extend(batch)
             start = end + 1
             failures = 0
-            time.sleep(0.02)
         except Exception as e:
             if is_range_issue(e) and chunk > 250:
                 chunk = max(chunk // 2, 250)
                 print(f"Reducing log chunk to {chunk}: {e}")
+                failures = 0
                 continue
             failures += 1
             if failures < 5:
@@ -212,12 +240,6 @@ def day_key(ts):
     return datetime.datetime.utcfromtimestamp(ts).strftime('%Y-%m-%d')
 
 
-def parse_day(value):
-    if isinstance(value, datetime.date) and not isinstance(value, datetime.datetime):
-        return value
-    return datetime.datetime.strptime(str(value)[:10], '%Y-%m-%d').date()
-
-
 def daterange(start, end):
     days = []
     cur = start
@@ -234,20 +256,45 @@ latest_num, latest_ts = get_block(int(rpc({
     'params': [],
     'id': 1
 })['result'], 16))
-from_block = max(0, latest_num - int(LOOKBACK_DAYS * 86400 / 2))
+
+existing_rows = load_existing_daily()
+existing_days = {}
+for r in existing_rows:
+    if r.get('day'):
+        existing_days[str(r['day'])[:10]] = r
+
+last_data_day = None
+if existing_days:
+    try:
+        last_data_day = datetime.datetime.strptime(sorted(existing_days.keys())[-1], '%Y-%m-%d').date()
+    except Exception:
+        last_data_day = None
+
+end_day = datetime.datetime.utcfromtimestamp(latest_ts).date()
+
+# Incremental: only fetch logs since the last data day (plus a small overlap).
+if last_data_day is not None:
+    start_day = last_data_day - datetime.timedelta(days=2)
+else:
+    start_day = end_day - datetime.timedelta(days=LOOKBACK_DAYS)
+
+epoch = datetime.datetime(1970, 1, 1)
+target_start_ts = int((datetime.datetime(start_day.year, start_day.month, start_day.day) - epoch).total_seconds())
+# Approximate blocks per second using the current block time (Base ~2s).
+blocks_per_day = 43200
+from_block = max(0, latest_num - int((latest_ts - target_start_ts) / 2.0) - blocks_per_day)
 try:
     from_num, from_ts = get_block(from_block)
 except Exception as e:
-    print(f"Lookback block fetch failed ({e}), using 10-day window")
-    from_block = max(0, latest_num - int(10 * 86400 / 2))
-    from_num, from_ts = get_block(from_block)
+    print(f"Lookback block fetch failed ({e}), using estimate")
+    from_num, from_ts = from_block, target_start_ts
 
 avg_block_time = (latest_ts - from_ts) / max(latest_num - from_num, 1)
-chunk = (_active_rpc or RPC_CANDIDATES[-1])['chunk']
-print(f"RPC={(_active_rpc or {}).get('name')} blocks={from_num}->{latest_num} chunk={chunk}")
+pref = RPC_CANDIDATES[0]
+print(f"RPC={pref['name']} blocks={from_num}->{latest_num} chunk={pref['chunk']} last_data_day={last_data_day}")
 
-unstake_logs = get_logs(svvv, UNSTAKE_TOPIC, from_num, latest_num, chunk)
-stake_logs = get_logs(svvv, STAKE_TOPIC, from_num, latest_num, chunk)
+unstake_logs = get_logs(svvv, UNSTAKE_TOPIC, from_num, latest_num, pref)
+stake_logs = get_logs(svvv, STAKE_TOPIC, from_num, latest_num, pref)
 unstake_events = decode_amount_events(unstake_logs, from_num, from_ts, avg_block_time)
 stake_events = decode_amount_events(stake_logs, from_num, from_ts, avg_block_time)
 print(f"Fetched {len(unstake_events)} UnstakeInitiated and {len(stake_events)} Staked events")
@@ -263,11 +310,9 @@ for ev in stake_events:
     rec['amount'] += ev['amount']
     rec['users'].add(ev['user'])
 
-existing = {str(r.get('day'))[:10]: r for r in load_existing_daily() if r.get('day')}
-end_day = datetime.datetime.utcfromtimestamp(latest_ts).date()
-start_day = end_day - datetime.timedelta(days=30)
-fetched_from_day = datetime.datetime.utcfromtimestamp(from_ts).date()
-all_days = daterange(start_day, end_day)
+fetched_from_day = start_day
+chart_start = end_day - datetime.timedelta(days=30)
+all_days = daterange(chart_start, end_day)
 
 price_rows = {}
 def fetch_cg_price(extra_headers=None, label=''):
@@ -344,7 +389,7 @@ staked_amount = {}
 staked_users = {}
 for day in all_days:
     key = day.isoformat()
-    prev = existing.get(key, {})
+    prev = existing_days.get(key, {})
     covered = day >= fetched_from_day
     if key in initiated_by_day:
         initiated_amount[key] = initiated_by_day[key]['amount']
@@ -370,7 +415,7 @@ for day in all_days:
     key = day.isoformat()
     unlock_day = (day - datetime.timedelta(days=7)).isoformat()
     queue_days = [(day - datetime.timedelta(days=offset)).isoformat() for offset in range(0, 7)]
-    prev = existing.get(key, {})
+    prev = existing_days.get(key, {})
     rows.append({
         'day': key,
         'initiated_amount': initiated_amount.get(key, 0),
@@ -385,10 +430,7 @@ for day in all_days:
         'sell_volume_usd': sell_rows.get(key, prev.get('sell_volume_usd'))
     })
 
-now_ts = latest_ts
-initiated_last_7d = sum(ev['amount'] for ev in unstake_events if ev['ts'] > now_ts - 7 * 86400)
-if not unstake_events:
-    initiated_last_7d = sum(r['initiated_amount'] for r in rows[-7:])
+initiated_last_7d = sum(r['initiated_amount'] for r in rows[-7:])
 nonzero_initiated = [r['initiated_amount'] for r in rows if r['initiated_amount']]
 summary = [{
     'current_queue_amount': rows[-1]['queue_amount'] if rows else 0,
