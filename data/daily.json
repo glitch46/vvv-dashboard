@@ -391,14 +391,14 @@
   },
   {
     "day": "2026-10-26",
-    "initiated_amount": 4250.345662655688,
-    "initiated_users": 11,
-    "queue_amount": 226357.921695334,
+    "initiated_amount": 4694.809675201367,
+    "initiated_users": 14,
+    "queue_amount": 226802.38570787967,
     "unlock_amount": 20308.675995538295,
-    "vvv_price_usd": 24.46154979851495,
+    "vvv_price_usd": 24.948634232617817,
     "trade_volume_usd": null,
-    "staked_amount": 7749.435037877326,
-    "staked_users": 96,
+    "staked_amount": 7909.080577564872,
+    "staked_users": 126,
     "buy_volume_usd": null,
     "sell_volume_usd": null
   }
