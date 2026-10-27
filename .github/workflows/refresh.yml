@@ -32,7 +32,7 @@ jobs:
       - name: Build holder distribution (Venice RPC)
         env:
           VENICE_API_KEY: ${{ secrets.VENICE_API_KEY }}
-          VVV_TIME_BUDGET_SECONDS: '3000'
+          VVV_TIME_BUDGET_SECONDS: '5400'
         run: python scripts/holders.py || echo "holder backfill not complete this run"
       - name: Commit data
         run: |
