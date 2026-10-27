@@ -152,6 +152,9 @@
     .kpi-value { font-size: 28px; margin-top: 8px; font-variant-numeric: tabular-nums; font-weight: 400; font-family: 'charpentierrenred-demiobl', Georgia, serif; color: var(--text-warm); }
     .kpi-delta { font-size: 12px; margin-top: 6px; color: var(--accent); font-weight: 400; }
     .charts { grid-template-columns: 1fr; }
+    .holder-grid { grid-template-columns: 1fr 1fr; gap: 20px; }
+    .holder-grid canvas { height: 340px !important; }
+    @media (max-width: 900px) { .holder-grid { grid-template-columns: 1fr; } }
     .forecast-list { list-style: none; margin: 0; padding: 0; }
     .forecast-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border); transition: background 0.2s ease; }
     .forecast-item:last-child { border-bottom: none; }
@@ -236,6 +239,14 @@
         </div>
         <ul class="forecast-list" id="forecastList"></ul>
       </div>
+    </div>
+
+    <div class="grid charts holder-grid" style="margin-top:24px;">
+      <div class="panel"><canvas id="holderDoughnutChart"></canvas></div>
+      <div class="panel"><canvas id="holdAgeChart"></canvas></div>
+    </div>
+    <div class="panel" id="holderNote" style="margin-top:24px; display:none;">
+      <span style="color: var(--muted); font-size: 14px; font-weight: 300;" id="holderNoteText"></span>
     </div>
 
     <div class="panel" id="howToRead" style="margin-top:24px;">
@@ -569,6 +580,130 @@
         li.appendChild(amountEl);
         forecastList.appendChild(li);
       });
+
+      // ----- Holder distribution (where circulating VVV sits) -----
+      let holders = null;
+      try {
+        holders = await loadJSON('data/holders.json');
+      } catch (e) {
+        holders = null;
+      }
+
+      const holderNote = document.getElementById('holderNote');
+      const holderNoteText = document.getElementById('holderNoteText');
+
+      if (holders && holders.backfill_complete !== false && holders.categories) {
+        const cat = holders.categories || {};
+        const order = [
+          { key: 'lp', label: 'LP Pools', color: '#F5A623' },
+          { key: 'exchange', label: 'Exchange Wallets', color: '#E8853D' },
+          { key: 'contract', label: 'Contract Addresses', color: '#8E6BB8' },
+          { key: 'user', label: 'User Wallets', color: '#4CAF7D' }
+        ];
+        const catLabels = order.map(o => o.label);
+        const catData = order.map(o => Number(cat[o.key] || 0));
+        const catColors = order.map(o => o.color);
+
+        new Chart(document.getElementById('holderDoughnutChart'), {
+          type: 'doughnut',
+          data: {
+            labels: catLabels,
+            datasets: [{
+              data: catData,
+              backgroundColor: catColors,
+              borderColor: 'rgba(10,10,10,0.6)',
+              borderWidth: 2,
+              hoverOffset: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '58%',
+            plugins: {
+              legend: { labels: { color: legendColor, padding: 14 } },
+              title: {
+                display: true,
+                text: `Where Circulating VVV Is Held (${fmt(holders.circulating_total)} total)`,
+                color: legendColor,
+                font: { size: 14, weight: 400 }
+              },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => {
+                    const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                    const pct = total ? ((ctx.parsed / total) * 100).toFixed(1) : '0.0';
+                    return ` ${ctx.label}: ${fmt(ctx.parsed)} VVV (${pct}%)`;
+                  }
+                }
+              }
+            }
+          }
+        });
+
+        // Hold-duration of user-wallet VVV
+        const bands = holders.user_hold_bands || {};
+        const bandOrder = ['<24h', '1-7d', '7-30d', '30-90d', '90-180d', '180-365d', '>365d'];
+        const bandLabels = bandOrder.map(b => `Held ${b}`);
+        const bandData = bandOrder.map(b => Number(bands[b] || 0));
+        const bandColors = ['#CF6679', '#E8853D', '#F5A623', '#B8A13C', '#8E6BB8', '#6B8EDB', '#4CAF7D'];
+
+        new Chart(document.getElementById('holdAgeChart'), {
+          type: 'bar',
+          data: {
+            labels: bandLabels,
+            datasets: [{
+              label: 'User-held VVV',
+              data: bandData,
+              backgroundColor: bandColors,
+              borderColor: 'rgba(10,10,10,0.6)',
+              borderWidth: 1,
+              borderRadius: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              title: {
+                display: true,
+                text: `How Long User-Held VVV Has Been Sat (avg ${holders.avg_hold_days ?? 0}d)`,
+                color: legendColor,
+                font: { size: 14, weight: 400 }
+              },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => ` ${fmt(ctx.parsed.y)} VVV`
+                }
+              }
+            },
+            scales: {
+              x: { ticks: { color: axisColor, maxRotation: 45 }, grid: { color: gridColor } },
+              y: { ticks: { color: axisColor, callback: (v) => fmt(v) }, grid: { color: gridColor } }
+            }
+          }
+        });
+
+        // Note with context
+        const lpNames = Object.keys(holders.lp_pools || {}).slice(0, 6).join(', ');
+        holderNoteText.innerHTML =
+          `Categories: freely-circulating VVV (excludes staked, burned, and locked treasury/team). ` +
+          `LP pools include Aerodrome & Uniswap (e.g. ${lpNames || 'various pools'}). ` +
+          `Exchange wallets use a curated label list (best-effort). ` +
+          `Contract addresses are any non-pool, non-exchange contract detected on-chain. ` +
+          `"Held" means the current balance has been sitting in the wallet without being transferred (FIFO age). ` +
+          `As of ${holders.as_of}.`;
+        holderNote.style.display = 'block';
+      } else if (holders && holders.backfill_complete === false) {
+        holderNoteText.textContent =
+          holders.message || 'Holder analysis is indexing full transfer history — please check back after the next refresh.';
+        holderNote.style.display = 'block';
+      } else {
+        holderNoteText.textContent =
+          'Holder distribution is temporarily unavailable. It will appear once the on-chain indexer has caught up.';
+        holderNote.style.display = 'block';
+      }
 
     })();
   </script>

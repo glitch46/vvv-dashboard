@@ -14,7 +14,7 @@ permissions:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -29,6 +29,11 @@ jobs:
           VVV_LOCKED_ADDRESSES: ${{ secrets.VVV_LOCKED_ADDRESSES }}
           VVV_BURN_ADDRESSES: ${{ secrets.VVV_BURN_ADDRESSES }}
         run: python scripts/refresh.py
+      - name: Build holder distribution (Venice RPC)
+        env:
+          VENICE_API_KEY: ${{ secrets.VENICE_API_KEY }}
+          VVV_TIME_BUDGET_SECONDS: '3000'
+        run: python scripts/holders.py || echo "holder backfill not complete this run"
       - name: Commit data
         run: |
           git config user.name "github-actions"

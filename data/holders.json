@@ -1,0 +1,6 @@
+{
+  "as_of": "2026-10-26 00:00 UTC",
+  "latest_block": 0,
+  "backfill_complete": false,
+  "message": "Holder analysis is indexing full transfer history; the snapshot will appear once the backfill is complete (typically within a few scheduled runs)."
+}
