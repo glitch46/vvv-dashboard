@@ -27,6 +27,8 @@ LOG_CHUNK = int(os.environ.get('VENICE_LOG_CHUNK', '10000'))
 MIN_CHUNK = 1000
 MAX_AGE_DAYS = int(os.environ.get('VVV_MAX_AGE_DAYS', '365'))
 MIN_HOLD = float(os.environ.get('VVV_MIN_HOLD', '1.0'))
+CLASSIFY_TOP_N = int(os.environ.get('VVV_CLASSIFY_TOP_N', '800'))
+CHECKPOINT_EVERY = int(os.environ.get('VVV_CHECKPOINT_EVERY', '200'))
 RATE_PER_MIN = 100.0
 RESULT_SOFT_CAP = int(os.environ.get('VVV_LOG_SOFT_CAP', '9000'))
 
@@ -261,6 +263,34 @@ def classify_address(a, kind_cache):
     return kind
 
 
+def write_state(state_path, last_block, last_ts, kind_cache, accounts):
+    """Persist bounded state: kind/bal for all non-dust; FIFO only for meaningful users."""
+    dust_cutoff = 0.01  # VVV
+    state_accounts = {}
+    for a, rec in accounts.items():
+        if rec['bal'] < dust_cutoff and rec['kind'] in ('user', 'unknown'):
+            continue  # drop dust EOAs to bound state size
+        if rec['kind'] == 'user' and rec['bal'] >= MIN_HOLD:
+            fifo = [list(x) for x in rec['fifo']]
+        else:
+            fifo = []
+        state_accounts[a] = {
+            'bal': round(rec['bal'], 8),
+            'kind': rec['kind'],
+            'fifo': fifo,
+            'legacy': rec['legacy'],
+        }
+    state_out = {
+        'last_block': last_block,
+        'last_ts': last_ts,
+        'kind_cache': kind_cache,
+        'accounts': state_accounts,
+    }
+    os.makedirs(os.path.dirname(state_path) or '.', exist_ok=True)
+    with open(state_path, 'w', encoding='utf-8') as f:
+        json.dump(state_out, f, separators=(',', ':'))
+
+
 def main():
     state_path = os.path.join('data', 'holders_state.json')
     out_path = os.path.join('data', 'holders.json')
@@ -381,10 +411,19 @@ def main():
         start_time = time.time()
         processed = 0
         caught_up = True
+        chunk_count = 0
         for chunk_start, chunk_end, batch in get_logs_venice_chunks(last_block, latest_num):
             apply_logs(batch, sec_per_block, anchor_block, anchor_ts)
             processed += len(batch)
             last_block = chunk_end + 1
+            chunk_count += 1
+            # periodic checkpoint so a workflow timeout doesn't lose all progress
+            if chunk_count % CHECKPOINT_EVERY == 0:
+                try:
+                    write_state(state_path, last_block, last_ts, kind_cache, accounts)
+                    print(f'  checkpoint saved at block {last_block} ({processed} events)')
+                except Exception as e:
+                    print(f'  checkpoint save failed: {e}')
             if time.time() - start_time > budget_seconds:
                 print(f'Time budget reached; pausing backfill at block {last_block}')
                 caught_up = False
@@ -409,17 +448,23 @@ def main():
                 del accounts[a]
             continue
 
-    # ---- classification (deferred) for meaningful balances ----
-    for a, rec in list(accounts.items()):
+    # ---- classification (deferred), bounded to top-N holders by balance ----
+    # Only meaningful addresses get an eth_getCode check (rate-limited); the
+    # long tail of small balances defaults to 'user' (EOA-dominated).
+    unknown = [(a, rec) for a, rec in accounts.items()
+               if rec['kind'] == 'unknown' and rec['bal'] >= MIN_HOLD]
+    unknown.sort(key=lambda x: -x[1]['bal'])
+    for a, rec in accounts.items():
         if rec['kind'] != 'unknown':
             continue
         if rec['bal'] < MIN_HOLD:
-            rec['kind'] = 'user'   # dust → user wallet (EOAs dominate)
-            continue
+            rec['kind'] = 'user'
+    for a, rec in unknown[:CLASSIFY_TOP_N]:
         rec['kind'] = classify_address(a, kind_cache)
-        # only user wallets keep a FIFO ledger
         if rec['kind'] != 'user':
             rec['fifo'] = deque()
+    for a, rec in unknown[CLASSIFY_TOP_N:]:
+        rec['kind'] = 'user'  # below top-N: assume EOA user wallet
 
     # fold old FIFO entries into legacy for user accounts (only meaningful ones)
     for a, rec in accounts.items():
@@ -548,30 +593,8 @@ def main():
         with open(out_path, 'w', encoding='utf-8') as f:
             json.dump(placeholder, f, indent=2)
 
-    # persist bounded state: keep kind/bal for all non-dust; FIFO only for meaningful users
-    dust_cutoff = 0.01  # VVV
-    state_accounts = {}
-    for a, rec in accounts.items():
-        if rec['bal'] < dust_cutoff and rec['kind'] in ('user', 'unknown'):
-            continue  # drop dust EOAs to bound state size
-        if rec['kind'] == 'user' and rec['bal'] >= MIN_HOLD:
-            fifo = [list(x) for x in rec['fifo']]
-        else:
-            fifo = []
-        state_accounts[a] = {
-            'bal': round(rec['bal'], 8),
-            'kind': rec['kind'],
-            'fifo': fifo,
-            'legacy': rec['legacy'],
-        }
-    state_out = {
-        'last_block': last_block,
-        'last_ts': last_ts,
-        'kind_cache': kind_cache,
-        'accounts': state_accounts,
-    }
-    with open(state_path, 'w', encoding='utf-8') as f:
-        json.dump(state_out, f, separators=(',', ':'))
+    # persist bounded state via shared helper (also used for periodic checkpoints)
+    write_state(state_path, last_block, last_ts, kind_cache, accounts)
 
     print('Holders summary:')
     for k, v in summary['categories'].items():
