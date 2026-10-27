@@ -95,7 +95,7 @@ def http_post_json(url, payload, headers, timeout=60):
         raise RuntimeError(f'HTTP {e.code} for {url}: {body[:500]}') from e
 
 
-def venice_rpc(payload, idempotency_key=None, timeout=120, retries=3):
+def venice_rpc(payload, idempotency_key=None, timeout=120, retries=6):
     """Send a request to Venice RPC, respecting the 100 req/min cap + idempotency."""
     global _last_venice_ts
     if not VENICE_API_KEY:
@@ -119,8 +119,12 @@ def venice_rpc(payload, idempotency_key=None, timeout=120, retries=3):
             return out
         except Exception as e:
             _last_venice_ts = time.time()
+            msg = str(e).lower()
+            is_inflight = 'in flight' in msg or 'in-flight' in msg
+            is_ratelimit = '429' in msg or 'rate limit' in msg or 'too many requests' in msg
             if attempt < retries - 1:
-                time.sleep(2 ** attempt)
+                # In-flight mutex and rate limits need longer, staggered waits.
+                time.sleep(3 + 4 * attempt if is_inflight else 2 ** attempt)
                 continue
             raise
 
