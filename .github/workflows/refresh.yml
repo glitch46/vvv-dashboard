@@ -34,6 +34,11 @@ jobs:
           VENICE_API_KEY: ${{ secrets.VENICE_API_KEY }}
           VVV_TIME_BUDGET_SECONDS: '5400'
         run: python scripts/holders.py || echo "holder backfill not complete this run"
+      - name: Build unlocked-VVV sell pressure (Venice RPC)
+        env:
+          VENICE_API_KEY: ${{ secrets.VENICE_API_KEY }}
+          VVV_TIME_BUDGET_SECONDS: '5400'
+        run: python scripts/unlock_flow.py || echo "unlock backfill not complete this run"
       - name: Commit data
         run: |
           git config user.name "github-actions"

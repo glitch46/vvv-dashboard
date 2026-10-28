@@ -9,6 +9,8 @@ Static GitHub Pages dashboard that refreshes every 4 hours via GitHub Actions.
 - `data/holders.json`: where circulating VVV is held (LP / contracts / user wallets) plus hold-duration bands for user-held VVV
 - `data/holders_daily.json`: 30-day series of circulating VVV split by LP / contracts / user wallets
 - `data/holders_state.json`: incremental FIFO state for the holder indexer (committed so backfill resumes across runs)
+- `data/unlock.json`: unlocked-VVV sell-pressure snapshot (VVV released to user wallets by `finalizeUnstake`, still held, bucketed by time since unlock)
+- `data/unlock_state.json`: incremental FIFO state for the unlock-flow indexer
 
 Staking and unstaking series come from Base RPC logs (`Staked` and `UnstakeInitiated` on sVVV). Dune is optional and only used for DEX volume when the API key can still execute queries.
 
@@ -18,6 +20,9 @@ Replays VVV `Transfer` logs via the Venice Crypto RPC (archive-backed) to comput
 - contract addresses (any non-pool contract detected via `eth_getCode`; includes exchange hot wallets)
 - user wallets (EOAs)
 User-held VVV is further split by the age of the current holding (FIFO per address, folded past the max-age bucket), with an average hold time as reference. Excludes staked, burned, and locked/treasury supply. The backfill is resumable and time-boxed per run (`VVV_TIME_BUDGET_SECONDS`).
+
+## Unlocked-VVV sell pressure (`scripts/unlock_flow.py`)
+Replays the same VVV `Transfer` logs and maintains a per-wallet FIFO of "unlocked VVV" — deposits where the sender is the sVVV staking contract (i.e. `finalizeUnstake` released them). Any outgoing transfer consumes from that FIFO oldest-first, so the remainder is unlocked VVV still sitting in user wallets. Output buckets it by time since unlock (`<24h`, `1-7d`, `7-30d`, `30-90d`, `>90d`) as a sell-pressure signal, plus the average days from unlock to first sale as a reference.
 
 ## Refresh
 GitHub Actions runs every 4 hours and overwrites the JSON files.

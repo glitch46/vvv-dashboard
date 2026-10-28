@@ -245,7 +245,7 @@
     <div class="grid charts holder-grid" style="margin-top:24px;">
       <div class="panel chart-wrap"><div class="chart-title">Where Circulating VVV Is Held</div><canvas id="holderDoughnutChart"></canvas></div>
       <div class="panel chart-wrap"><div class="chart-title">How Long User-Held VVV Has Been Sat</div><canvas id="holdAgeChart"></canvas></div>
-      <div class="panel chart-wrap"><div class="chart-title">Circulating VVV Over 30 Days</div><canvas id="circulationChart"></canvas></div>
+      <div class="panel chart-wrap"><div class="chart-title">Unlocked VVV in Wallets — Sell Pressure</div><canvas id="circulationChart"></canvas></div>
     </div>
     <div class="panel" id="holderNote" style="margin-top:24px; display:none;">
       <span style="color: var(--muted); font-size: 14px; font-weight: 300;" id="holderNoteText"></span>
@@ -675,39 +675,54 @@
           }
         });
 
-        // 30-day circulating VVV stacked by category
+        // Unlocked VVV still sitting in user wallets, by time since unlock (sell pressure)
         try {
-          const dailyH = await loadJSON('data/holders_daily.json');
-          const days = dailyH.days || [];
-          if (days.length) {
+          const unlockH = await loadJSON('data/unlock.json');
+          if (unlockH && unlockH.backfill_complete !== false && unlockH.hold_bands_by_age_since_unlock) {
+            const ub = unlockH.hold_bands_by_age_since_unlock || {};
+            const ubOrder = ['<24h', '1-7d', '7-30d', '30-90d', '>90d'];
+            const ubLabels = ubOrder.map(b => `Unlocked ${b} ago`);
+            const ubData = ubOrder.map(b => Number(ub[b] || 0));
+            const ubColors = ['#CF6679', '#E8853D', '#F5A623', '#B8A13C', '#4CAF7D'];
+
             new Chart(document.getElementById('circulationChart'), {
               type: 'bar',
               data: {
-                labels: days.map(d => d.day.slice(5)),
-                datasets: [
-                  { label: 'User Wallets', data: days.map(d => Number(d.user || 0)), backgroundColor: '#4CAF7D', stack: 'circ', borderWidth: 0 },
-                  { label: 'Contract Addresses', data: days.map(d => Number(d.contract || 0)), backgroundColor: '#8E6BB8', stack: 'circ', borderWidth: 0 },
-                  { label: 'LP Pools', data: days.map(d => Number(d.lp || 0)), backgroundColor: '#F5A623', stack: 'circ', borderWidth: 0 }
-                ]
+                labels: ubLabels,
+                datasets: [{
+                  label: 'Unlocked VVV still held',
+                  data: ubData,
+                  backgroundColor: ubColors,
+                  borderColor: 'rgba(10,10,10,0.6)',
+                  borderWidth: 1,
+                  borderRadius: 6
+                }]
               },
               options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                  legend: { labels: { color: legendColor, padding: 14 } },
+                  legend: { display: false },
+                  title: {
+                    display: true,
+                    text: `Unlocked VVV Still in User Wallets: ${fmt(unlockH.unlocked_still_held)} total (avg ${unlockH.avg_days_unlock_to_sale ?? 0}d from unlock to sale)`,
+                    color: legendColor,
+                    font: { size: 13, weight: 400 }
+                  },
                   tooltip: {
                     callbacks: {
-                      label: (ctx) => ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)} VVV`,
+                      label: (ctx) => ` ${fmt(ctx.parsed.y)} VVV`,
                       afterLabel: (ctx) => {
-                        const total = ctx.chart.data.datasets.reduce((s, ds) => s + (Number(ds.data[ctx.dataIndex]) || 0), 0);
-                        return ` Total: ${fmt(total)} VVV`;
+                        const total = (unlockH.unlocked_still_held || 0);
+                        const pct = total ? ((ctx.parsed.y / total) * 100).toFixed(1) : '0.0';
+                        return ` ${pct}% of unlocked supply still held`;
                       }
                     }
                   }
                 },
                 scales: {
-                  x: { stacked: true, ticks: { color: axisColor, maxRotation: 0, autoSkip: true, maxTicksLimit: 15 }, grid: { color: gridColor } },
-                  y: { stacked: true, ticks: { color: axisColor, callback: (v) => fmt(v) }, grid: { color: gridColor } }
+                  x: { ticks: { color: axisColor, maxRotation: 30 }, grid: { color: gridColor } },
+                  y: { ticks: { color: axisColor, callback: (v) => fmt(v) }, grid: { color: gridColor } }
                 }
               }
             });
@@ -725,6 +740,8 @@
           `LP pools include Aerodrome & Uniswap (e.g. ${lpNames || 'various pools'}). ` +
           `Contract addresses are any non-pool contract detected on-chain (includes exchange hot wallets). ` +
           `"Held" means the current balance has been sitting in the wallet without being transferred (FIFO age). ` +
+          `The sell-pressure chart shows VVV released to user wallets by finalizeUnstake (unlocked) that is still there, ` +
+          `bucketed by time since unlock — recently-unlocked VVV is the most likely to be sold. ` +
           `As of ${holders.as_of}.`;
         holderNote.style.display = 'block';
       } else if (holders && holders.backfill_complete === false) {
