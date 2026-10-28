@@ -73,6 +73,17 @@ def is_rate_limit(err):
     return '429' in msg or 'rate limit' in msg or 'too many requests' in msg
 
 
+def is_transient(err):
+    """True for retryable network-level failures (SSL, conn, timeout, 5xx)."""
+    msg = str(err).lower()
+    if is_rate_limit(err):
+        return True
+    return any(x in msg for x in ('ssl', 'timeout', 'timed out', 'connection', 'reset',
+                                  'refused', 'eof', '5' in msg and 'http 5', 'ssl3',
+                                  'invalid_session', 'bad record', 'tlsv1', 'bad record mac',
+                                  'temporary failure', 'name resolution', 'unreachable'))
+
+
 def is_range_issue(err):
     msg = str(err).lower()
     if is_rate_limit(err):
@@ -99,7 +110,7 @@ def rpc(payload, timeout=60):
                 return out
             except Exception as e:
                 last_err = e
-                if is_rate_limit(e) and attempt < 4:
+                if is_transient(e) and attempt < 4:
                     time.sleep(min(2 ** (attempt + 1), 16))
                     continue
                 if _active_rpc is cand:
@@ -123,7 +134,7 @@ def rpc_for_logs(payload, pref_cand, timeout=60):
                 return out, cand
             except Exception as e:
                 last_err = e
-                if is_rate_limit(e) and attempt < 3:
+                if is_transient(e) and attempt < 3:
                     time.sleep(min(2 ** (attempt + 1), 12))
                     continue
                 break
