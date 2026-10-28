@@ -14,7 +14,7 @@ permissions:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -32,7 +32,7 @@ jobs:
       - name: Build holder distribution (Venice RPC)
         env:
           VENICE_API_KEY: ${{ secrets.VENICE_API_KEY }}
-          VVV_TIME_BUDGET_SECONDS: '5400'
+          VVV_TIME_BUDGET_SECONDS: '1500'
         run: python scripts/holders.py || echo "holder backfill not complete this run"
       - name: Build unlocked-VVV sell pressure (Venice RPC)
         env:
