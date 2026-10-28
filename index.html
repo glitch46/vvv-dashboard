@@ -152,9 +152,10 @@
     .kpi-value { font-size: 28px; margin-top: 8px; font-variant-numeric: tabular-nums; font-weight: 400; font-family: 'charpentierrenred-demiobl', Georgia, serif; color: var(--text-warm); }
     .kpi-delta { font-size: 12px; margin-top: 6px; color: var(--accent); font-weight: 400; }
     .charts { grid-template-columns: 1fr; }
-    .holder-grid { grid-template-columns: 1fr 1fr; gap: 20px; }
+    .holder-grid { grid-template-columns: 1fr; gap: 20px; }
     .holder-grid canvas { height: 340px !important; }
-    @media (max-width: 900px) { .holder-grid { grid-template-columns: 1fr; } }
+    .holder-grid .chart-wrap { min-height: 340px; position: relative; }
+    .holder-grid .chart-title { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; font-weight: 400; margin-bottom: 10px; }
     .forecast-list { list-style: none; margin: 0; padding: 0; }
     .forecast-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border); transition: background 0.2s ease; }
     .forecast-item:last-child { border-bottom: none; }
@@ -242,8 +243,9 @@
     </div>
 
     <div class="grid charts holder-grid" style="margin-top:24px;">
-      <div class="panel"><canvas id="holderDoughnutChart"></canvas></div>
-      <div class="panel"><canvas id="holdAgeChart"></canvas></div>
+      <div class="panel chart-wrap"><div class="chart-title">Where Circulating VVV Is Held</div><canvas id="holderDoughnutChart"></canvas></div>
+      <div class="panel chart-wrap"><div class="chart-title">How Long User-Held VVV Has Been Sat</div><canvas id="holdAgeChart"></canvas></div>
+      <div class="panel chart-wrap"><div class="chart-title">Circulating VVV Over 30 Days</div><canvas id="circulationChart"></canvas></div>
     </div>
     <div class="panel" id="holderNote" style="margin-top:24px; display:none;">
       <span style="color: var(--muted); font-size: 14px; font-weight: 300;" id="holderNoteText"></span>
@@ -594,9 +596,9 @@
 
       if (holders && holders.backfill_complete !== false && holders.categories) {
         const cat = holders.categories || {};
+        // Exchange balances fold into contract addresses (exchanges are contracts on-chain).
         const order = [
           { key: 'lp', label: 'LP Pools', color: '#F5A623' },
-          { key: 'exchange', label: 'Exchange Wallets', color: '#E8853D' },
           { key: 'contract', label: 'Contract Addresses', color: '#8E6BB8' },
           { key: 'user', label: 'User Wallets', color: '#4CAF7D' }
         ];
@@ -622,12 +624,6 @@
             cutout: '58%',
             plugins: {
               legend: { labels: { color: legendColor, padding: 14 } },
-              title: {
-                display: true,
-                text: `Where Circulating VVV Is Held (${fmt(holders.circulating_total)} total)`,
-                color: legendColor,
-                font: { size: 14, weight: 400 }
-              },
               tooltip: {
                 callbacks: {
                   label: (ctx) => {
@@ -666,12 +662,6 @@
             maintainAspectRatio: false,
             plugins: {
               legend: { display: false },
-              title: {
-                display: true,
-                text: `How Long User-Held VVV Has Been Sat (avg ${holders.avg_hold_days ?? 0}d)`,
-                color: legendColor,
-                font: { size: 14, weight: 400 }
-              },
               tooltip: {
                 callbacks: {
                   label: (ctx) => ` ${fmt(ctx.parsed.y)} VVV`
@@ -685,13 +675,55 @@
           }
         });
 
+        // 30-day circulating VVV stacked by category
+        try {
+          const dailyH = await loadJSON('data/holders_daily.json');
+          const days = dailyH.days || [];
+          if (days.length) {
+            new Chart(document.getElementById('circulationChart'), {
+              type: 'bar',
+              data: {
+                labels: days.map(d => d.day.slice(5)),
+                datasets: [
+                  { label: 'User Wallets', data: days.map(d => Number(d.user || 0)), backgroundColor: '#4CAF7D', stack: 'circ', borderWidth: 0 },
+                  { label: 'Contract Addresses', data: days.map(d => Number(d.contract || 0)), backgroundColor: '#8E6BB8', stack: 'circ', borderWidth: 0 },
+                  { label: 'LP Pools', data: days.map(d => Number(d.lp || 0)), backgroundColor: '#F5A623', stack: 'circ', borderWidth: 0 }
+                ]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { labels: { color: legendColor, padding: 14 } },
+                  tooltip: {
+                    callbacks: {
+                      label: (ctx) => ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)} VVV`,
+                      afterLabel: (ctx) => {
+                        const total = ctx.chart.data.datasets.reduce((s, ds) => s + (Number(ds.data[ctx.dataIndex]) || 0), 0);
+                        return ` Total: ${fmt(total)} VVV`;
+                      }
+                    }
+                  }
+                },
+                scales: {
+                  x: { stacked: true, ticks: { color: axisColor, maxRotation: 0, autoSkip: true, maxTicksLimit: 15 }, grid: { color: gridColor } },
+                  y: { stacked: true, ticks: { color: axisColor, callback: (v) => fmt(v) }, grid: { color: gridColor } }
+                }
+              }
+            });
+          } else {
+            document.getElementById('circulationChart').closest('.chart-wrap').style.display = 'none';
+          }
+        } catch (e) {
+          document.getElementById('circulationChart').closest('.chart-wrap').style.display = 'none';
+        }
+
         // Note with context
         const lpNames = Object.keys(holders.lp_pools || {}).slice(0, 6).join(', ');
         holderNoteText.innerHTML =
           `Categories: freely-circulating VVV (excludes staked, burned, and locked treasury/team). ` +
           `LP pools include Aerodrome & Uniswap (e.g. ${lpNames || 'various pools'}). ` +
-          `Exchange wallets use a curated label list (best-effort). ` +
-          `Contract addresses are any non-pool, non-exchange contract detected on-chain. ` +
+          `Contract addresses are any non-pool contract detected on-chain (includes exchange hot wallets). ` +
           `"Held" means the current balance has been sitting in the wallet without being transferred (FIFO age). ` +
           `As of ${holders.as_of}.`;
         holderNote.style.display = 'block';

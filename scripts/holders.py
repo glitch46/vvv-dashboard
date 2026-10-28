@@ -28,6 +28,7 @@ MIN_CHUNK = 1000
 MAX_AGE_DAYS = int(os.environ.get('VVV_MAX_AGE_DAYS', '365'))
 MIN_HOLD = float(os.environ.get('VVV_MIN_HOLD', '1.0'))
 CLASSIFY_TOP_N = int(os.environ.get('VVV_CLASSIFY_TOP_N', '800'))
+DAILY_LOOKBACK_DAYS = int(os.environ.get('VVV_DAILY_DAYS', '37'))
 CHECKPOINT_EVERY = int(os.environ.get('VVV_CHECKPOINT_EVERY', '200'))
 RATE_PER_MIN = 100.0
 RESULT_SOFT_CAP = int(os.environ.get('VVV_LOG_SOFT_CAP', '9000'))
@@ -295,6 +296,86 @@ def write_state(state_path, last_block, last_ts, kind_cache, accounts):
         json.dump(state_out, f, separators=(',', ':'))
 
 
+def build_daily_series(latest_num, latest_ts, accounts, kind_cache):
+    """Build a 30-day series of circulating VVV split by LP / contracts / user wallets.
+
+    Uses the fully-synced ledger: fetch the last ~37 days of transfers, reconstruct
+    each day's closing balances (current balance minus subsequent transfers), then
+    bucket by category using the classified kinds. Exchange balances fold into
+    contracts.
+    """
+    start_block = max(1, latest_num - int(DAILY_LOOKBACK_DAYS * 86400 / 2))
+    try:
+        start_ts = get_block_ts(start_block)
+    except Exception:
+        start_ts = latest_ts - (latest_num - start_block) * 2
+    sec_per_block = (latest_ts - start_ts) / max(latest_num - start_block, 1)
+
+    print(f'Building {DAILY_LOOKBACK_DAYS}d circulating series from block {start_block}')
+    by_day = {}
+    for _, _, batch in get_logs_venice_chunks(start_block, latest_num):
+        for lg in batch:
+            topics = lg.get('topics') or []
+            if len(topics) < 3:
+                continue
+            frm = ('0x' + topics[1][-40:]).lower()
+            to = ('0x' + topics[2][-40:]).lower()
+            amt = int(lg.get('data') or '0x0', 16) / 1e18
+            bnum = int(lg['blockNumber'], 16)
+            ts = start_ts + (bnum - start_block) * sec_per_block
+            day = datetime.datetime.utcfromtimestamp(ts).strftime('%Y-%m-%d')
+            by_day.setdefault(day, []).append((frm, to, amt))
+
+    # net change over the window per address
+    net = {}
+    for day, transfers in by_day.items():
+        for frm, to, amt in transfers:
+            net[frm] = net.get(frm, 0.0) - amt
+            net[to] = net.get(to, 0.0) + amt
+
+    # opening balance (window start) = current balance - net change in window
+    bal = {}
+    for addr, rec in accounts.items():
+        bal[addr] = rec['bal'] - net.get(addr, 0.0)
+        if bal[addr] < 0:
+            bal[addr] = 0.0
+
+    def kind_of(addr):
+        rec = accounts.get(addr)
+        if rec and rec.get('kind') not in (None, 'unknown'):
+            return rec['kind']
+        if addr in kind_cache:
+            return kind_cache[addr]
+        return 'user'
+
+    series = []
+    for day in sorted(by_day.keys()):
+        for frm, to, amt in by_day[day]:
+            bal[frm] = bal.get(frm, 0.0) - amt
+            if bal[frm] < 0:
+                bal[frm] = 0.0
+            bal[to] = bal.get(to, 0.0) + amt
+
+        lp = contract = user = 0.0
+        for addr, b in bal.items():
+            if b < 1e-9:
+                continue
+            k = kind_of(addr)
+            if k == 'lp':
+                lp += b
+            elif k in ('contract', 'exchange'):
+                contract += b
+            elif k == 'user':
+                user += b
+            # locked / excluded are not circulating
+        series.append({'day': day, 'lp': round(lp, 2),
+                       'contract': round(contract, 2), 'user': round(user, 2),
+                       'total': round(lp + contract + user, 2)})
+
+    # keep last 30 days
+    return series[-30:]
+
+
 def main():
     state_path = os.path.join('data', 'holders_state.json')
     out_path = os.path.join('data', 'holders.json')
@@ -523,6 +604,11 @@ def main():
                 cat['exchange'] += b
                 exch_detail[name] = exch_detail.get(name, 0) + b
 
+    # fold exchange balances into contracts (exchanges are contracts on-chain)
+    cat['contract'] += cat.pop('exchange', 0.0)
+    for name, b in exch_detail.items():
+        contract_detail[name] = contract_detail.get(name, 0) + b
+
     # ---- user hold-age bands (FIFO) ----
     bands = {'<24h': 0.0, '1-7d': 0.0, '7-30d': 0.0, '30-90d': 0.0,
              '90-180d': 0.0, '180-365d': 0.0, '>365d': 0.0}
@@ -599,6 +685,16 @@ def main():
 
     # persist bounded state via shared helper (also used for periodic checkpoints)
     write_state(state_path, last_block, last_ts, kind_cache, accounts)
+
+    # 30-day circulating series (only meaningful once the ledger is caught up)
+    if caught_up:
+        try:
+            daily = build_daily_series(latest_num, latest_ts, accounts, kind_cache)
+            with open(os.path.join('data', 'holders_daily.json'), 'w', encoding='utf-8') as f:
+                json.dump({'as_of': summary['as_of'], 'days': daily}, f, indent=2)
+            print(f'  wrote {len(daily)} days of circulating series')
+        except Exception as e:
+            print(f'  ERROR building daily series: {e}')
 
     print('Holders summary:')
     for k, v in summary['categories'].items():

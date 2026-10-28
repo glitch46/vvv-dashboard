@@ -6,7 +6,8 @@ Static GitHub Pages dashboard that refreshes every 4 hours via GitHub Actions.
 - `data/daily.json`: daily initiated/unlocks/queue (30d)
 - `data/summary.json`: current queue vs averages
 - `data/supply.json`: current supply breakdown used by pie chart
-- `data/holders.json`: where circulating VVV is held (LP / exchanges / contracts / user wallets) plus hold-duration bands for user-held VVV
+- `data/holders.json`: where circulating VVV is held (LP / contracts / user wallets) plus hold-duration bands for user-held VVV
+- `data/holders_daily.json`: 30-day series of circulating VVV split by LP / contracts / user wallets
 - `data/holders_state.json`: incremental FIFO state for the holder indexer (committed so backfill resumes across runs)
 
 Staking and unstaking series come from Base RPC logs (`Staked` and `UnstakeInitiated` on sVVV). Dune is optional and only used for DEX volume when the API key can still execute queries.
@@ -14,8 +15,7 @@ Staking and unstaking series come from Base RPC logs (`Staked` and `UnstakeIniti
 ## Holder distribution (`scripts/holders.py`)
 Replays VVV `Transfer` logs via the Venice Crypto RPC (archive-backed) to compute where freely-circulating VVV sits:
 - LP pools (curated Aerodrome/Uniswap address list from DexScreener)
-- exchange wallets (curated label list, best-effort)
-- contract addresses (any non-pool/non-exchange contract detected via `eth_getCode`)
+- contract addresses (any non-pool contract detected via `eth_getCode`; includes exchange hot wallets)
 - user wallets (EOAs)
 User-held VVV is further split by the age of the current holding (FIFO per address, folded past the max-age bucket), with an average hold time as reference. Excludes staked, burned, and locked/treasury supply. The backfill is resumable and time-boxed per run (`VVV_TIME_BUDGET_SECONDS`).
 
