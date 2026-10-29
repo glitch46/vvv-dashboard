@@ -1,5 +1,16 @@
 {
-  "as_of": "2026-10-28 23:59 UTC",
-  "backfill_complete": false,
-  "message": "Unlocked-VVV analysis is indexing transfer history; the sell-pressure snapshot will appear once complete."
+  "as_of": "2026-10-29 08:42 UTC",
+  "latest_block": 53237007,
+  "backfill_complete": true,
+  "unlocked_still_held": 572925.97,
+  "total_unlocked_alltime": 51901654.73,
+  "total_sold": 51328728.76,
+  "hold_bands_by_age_since_unlock": {
+    "<24h": 1683.63,
+    "1-7d": 13357.33,
+    "7-30d": 151304.15,
+    "30-90d": 160153.94,
+    ">90d": 246426.92
+  },
+  "avg_days_unlock_to_sale": 86.4
 }
