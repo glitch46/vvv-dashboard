@@ -156,6 +156,24 @@
     .holder-grid canvas { height: 340px !important; }
     .holder-grid .chart-wrap { min-height: 340px; position: relative; }
     .holder-grid .chart-title { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; font-weight: 400; margin-bottom: 10px; }
+    .sell-filter { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .sell-filter-label { color: var(--muted); font-size: 12px; font-weight: 400; text-transform: uppercase; letter-spacing: .05em; }
+    .sell-filter-btn {
+      background: transparent; color: var(--muted); border: 1px solid var(--border);
+      border-radius: 6px; padding: 4px 14px; font-size: 12px; cursor: pointer;
+      font-family: inherit; transition: all 0.2s ease;
+    }
+    .sell-filter-btn:hover { border-color: var(--border-hover); color: var(--text-warm); }
+    .sell-filter-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+    .sell-datestrip { display: flex; gap: 6px; margin-top: 14px; flex-wrap: wrap; }
+    .sell-date {
+      flex: 1 0 60px; text-align: center; padding: 6px 4px; border-radius: 6px;
+      border: 1px solid var(--border); cursor: pointer; font-size: 11px;
+      color: var(--muted); transition: all 0.15s ease; font-variant-numeric: tabular-nums;
+    }
+    .sell-date:hover { border-color: var(--accent); color: var(--text-warm); }
+    .sell-date.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+    .sell-datestrip-label { color: var(--muted); font-size: 11px; margin-top: 8px; font-weight: 300; }
     .forecast-list { list-style: none; margin: 0; padding: 0; }
     .forecast-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border); transition: background 0.2s ease; }
     .forecast-item:last-child { border-bottom: none; }
@@ -246,7 +264,17 @@
       <div class="panel chart-wrap"><div class="chart-title">Where Circulating VVV Is Held</div><canvas id="holderDoughnutChart"></canvas></div>
       <div class="panel chart-wrap"><div class="chart-title">How Long User-Held VVV Has Been Held</div><canvas id="holdAgeChart"></canvas></div>
       <div class="panel chart-wrap"><div class="chart-title">Unlocked VVV in Wallets — Sell Pressure</div><canvas id="circulationChart"></canvas></div>
-      <div class="panel chart-wrap"><div class="chart-title">Where Sell Pressure Comes From</div><canvas id="sellSourceChart"></canvas></div>
+      <div class="panel chart-wrap">
+        <div class="chart-title">Where Sell Pressure Comes From</div>
+        <div class="sell-filter">
+          <span class="sell-filter-label">Filter:</span>
+          <button class="sell-filter-btn active" id="filterHeldBtn" data-mode="held">Held</button>
+          <button class="sell-filter-btn" id="filterSoldBtn" data-mode="sold">Sold</button>
+        </div>
+        <canvas id="sellSourceChart"></canvas>
+        <div class="sell-datestrip" id="sellDateStrip"></div>
+        <div class="sell-datestrip-label" id="sellDateLabel">Hover a date to inspect that day</div>
+      </div>
     </div>
     <div class="panel" id="holderNote" style="margin-top:24px; display:none;">
       <span style="color: var(--muted); font-size: 14px; font-weight: 300;" id="holderNoteText"></span>
@@ -733,55 +761,113 @@
             }
           });
 
-          // Where does the sell pressure come from? Split unlocked-and-still-held VVV
-          // by how long ago it was unlocked, at the 90-day reference mark.
-          const shortTerm = (Number(ub['<24h'] || 0) + Number(ub['1-7d'] || 0) +
-                            Number(ub['7-30d'] || 0) + Number(ub['30-90d'] || 0));
-          const longTerm = Number(ub['>90d'] || 0);
-          const totalSP = shortTerm + longTerm;
-          if (totalSP > 0) {
-            const shortPct = (shortTerm / totalSP) * 100;
-            new Chart(document.getElementById('sellSourceChart'), {
-              type: 'doughnut',
-              data: {
-                labels: [
-                  `Unlocked < 90d ago (${shortPct.toFixed(1)}%)`,
-                  `Unlocked ≥ 90d ago (${(100 - shortPct).toFixed(1)}%)`
-                ],
-                datasets: [{
-                  data: [shortTerm, longTerm],
-                  backgroundColor: ['#A65D2F', '#6F7D4E'],
-                  borderColor: 'rgba(10,10,10,0.6)',
-                  borderWidth: 2,
-                  hoverOffset: 6
-                }]
-              },
-              options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '58%',
-                plugins: {
-                  legend: { labels: { color: legendColor, padding: 14 } },
-                  title: {
-                    display: true,
-                    text: `Sell pressure source: ${shortPct.toFixed(0)}% from recently-unlocked (< 90d), ${(100 - shortPct).toFixed(0)}% from longer-term (≥ 90d)`,
-                    color: legendColor,
-                    font: { size: 12, weight: 400 }
-                  },
-                  tooltip: {
-                    callbacks: {
-                      label: (ctx) => {
-                        const pct = (ctx.parsed / totalSP) * 100;
-                        return ` ${ctx.label}: ${fmt(ctx.parsed)} VVV (${pct.toFixed(1)}%)`;
+          // Where does the sell pressure come from? Interactive stacked bar:
+          // X = hold cohort, stacked by wallet type, filterable by day + Held/Sold.
+          (async () => {
+            const ssCanvas = document.getElementById('sellSourceChart');
+            const ssWrap = ssCanvas.closest('.chart-wrap');
+            let dailyH = null;
+            try { dailyH = await loadJSON('data/unlock_daily.json'); } catch (e) { dailyH = null; }
+            const days = (dailyH && dailyH.days) || [];
+            if (!days.length) {
+              ssWrap.style.display = 'none';
+              return;
+            }
+
+            const ssCohorts = ['<24h', '1-7d', '7-30d', '30-90d', '>90d'];
+            const ssTypes = [
+              { key: 'user', label: 'User Wallets', color: '#6F7D4E' },
+              { key: 'contract', label: 'Contract Addresses', color: '#5D7A8C' },
+              { key: 'lp', label: 'LP Pools', color: '#B8914A' }
+            ];
+            let mode = 'held';   // 'held' | 'sold'
+            let activeDay = days[days.length - 1].day;
+
+            function buildDatasets(day) {
+              const rec = days.find(d => d.day === day) || days[days.length - 1];
+              const src = rec[mode] || {};
+              const totals = {};
+              const datasets = ssTypes.map(t => {
+                const data = ssCohorts.map(c => {
+                  const m = (src[c] || {})[t.key] || 0;
+                  totals[t.key] = (totals[t.key] || 0) + m;
+                  return m;
+                });
+                return { label: t.label, data, backgroundColor: t.color, borderWidth: 0, stack: 'sp' };
+              });
+              return { datasets, total: Object.values(totals).reduce((a, b) => a + b, 0) };
+            }
+
+            let ssChart = null;
+            function renderChart() {
+              const { datasets, total } = buildDatasets(activeDay);
+              if (ssChart) ssChart.destroy();
+              const modeLabel = mode === 'held' ? 'still held (by time since unlock)' : 'sold (by time from unlock to sale)';
+              ssChart = new Chart(ssCanvas, {
+                type: 'bar',
+                data: { labels: ssCohorts.map(c => `Unlocked ${c} ago`), datasets },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: { labels: { color: legendColor, padding: 14 } },
+                    title: {
+                      display: true,
+                      text: `${activeDay} — ${mode === 'held' ? 'Held' : 'Sold'}: ${fmt(total)} VVV (${modeLabel})`,
+                      color: legendColor,
+                      font: { size: 13, weight: 400 }
+                    },
+                    tooltip: {
+                      callbacks: {
+                        label: (ctx) => ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)} VVV`,
+                        afterLabel: (ctx) => {
+                          const tot = ctx.chart.data.datasets.reduce((s, ds) => s + (Number(ds.data[ctx.dataIndex]) || 0), 0);
+                          return tot ? ` cohort total: ${fmt(tot)} VVV` : '';
+                        }
                       }
                     }
+                  },
+                  scales: {
+                    x: { stacked: true, ticks: { color: axisColor, maxRotation: 30 }, grid: { color: gridColor } },
+                    y: { stacked: true, ticks: { color: axisColor, callback: (v) => fmt(v) }, grid: { color: gridColor } }
                   }
                 }
-              }
+              });
+            }
+
+            // Build date strip
+            const strip = document.getElementById('sellDateStrip');
+            const label = document.getElementById('sellDateLabel');
+            days.forEach(d => {
+              const el = document.createElement('div');
+              el.className = 'sell-date' + (d.day === activeDay ? ' active' : '');
+              const dd = d.day.slice(5);
+              el.textContent = dd;
+              el.title = d.day;
+              el.addEventListener('mouseenter', () => {
+                activeDay = d.day;
+                strip.querySelectorAll('.sell-date').forEach(x => x.classList.remove('active'));
+                el.classList.add('active');
+                label.textContent = `Showing ${d.day}`;
+                renderChart();
+              });
+              strip.appendChild(el);
             });
-          } else {
-            document.getElementById('sellSourceChart').closest('.chart-wrap').style.display = 'none';
-          }
+
+            // Filter toggle
+            const btnHeld = document.getElementById('filterHeldBtn');
+            const btnSold = document.getElementById('filterSoldBtn');
+            function setMode(m) {
+              mode = m;
+              btnHeld.classList.toggle('active', m === 'held');
+              btnSold.classList.toggle('active', m === 'sold');
+              renderChart();
+            }
+            btnHeld.addEventListener('click', () => setMode('held'));
+            btnSold.addEventListener('click', () => setMode('sold'));
+
+            renderChart();
+          })();
         } else {
           document.getElementById('circulationChart').closest('.chart-wrap').style.display = 'none';
           document.getElementById('sellSourceChart').closest('.chart-wrap').style.display = 'none';
@@ -796,6 +882,8 @@
           `"Held" means the current balance has been sitting in the wallet without being transferred (FIFO age). ` +
           `The sell-pressure chart shows VVV released to user wallets by finalizeUnstake (unlocked) that is still there, ` +
           `bucketed by time since unlock — recently-unlocked VVV is the most likely to be sold. ` +
+          `The interactive 'Where Sell Pressure Comes From' chart stacks unlocked VVV by wallet type per hold cohort, ` +
+          `lets you switch between Held (still in wallets) and Sold (moved out that day), and hover over the last 14 days to inspect each day. ` +
           `As of ${holders.as_of}.`;
         holderNote.style.display = 'block';
       } else if (holders && holders.backfill_complete === false) {
