@@ -158,15 +158,6 @@
     .holder-grid .chart-title { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; font-weight: 400; margin-bottom: 10px; }
     .sell-chart-box { position: relative; height: 340px; }
     .chart-title { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; font-weight: 400; margin-bottom: 10px; }
-    .sell-filter { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-    .sell-filter-label { color: var(--muted); font-size: 12px; font-weight: 400; text-transform: uppercase; letter-spacing: .05em; }
-    .sell-filter-btn {
-      background: transparent; color: var(--muted); border: 1px solid var(--border);
-      border-radius: 6px; padding: 4px 14px; font-size: 12px; cursor: pointer;
-      font-family: inherit; transition: all 0.2s ease;
-    }
-    .sell-filter-btn:hover { border-color: var(--border-hover); color: var(--text-warm); }
-    .sell-filter-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
     .sell-datestrip { display: flex; gap: 6px; margin-top: 14px; flex-wrap: wrap; }
     .sell-date {
       flex: 1 0 60px; text-align: center; padding: 8px 4px; border-radius: 6px;
@@ -269,11 +260,6 @@
 
     <div class="panel chart-wrap" id="sellSourceWrap" style="margin-top:24px;">
       <div class="chart-title">Where Sell Pressure Comes From</div>
-      <div class="sell-filter">
-        <span class="sell-filter-label">Filter:</span>
-        <button class="sell-filter-btn active" id="filterSoldBtn" data-mode="sold">Sold</button>
-        <button class="sell-filter-btn" id="filterHeldBtn" data-mode="held">Held</button>
-      </div>
       <div class="sell-chart-box">
         <canvas id="sellSourceChart"></canvas>
       </div>
@@ -772,7 +758,7 @@
           });
 
           // Where does the sell pressure come from? Interactive stacked bar:
-          // X = hold cohort, stacked by wallet type, filterable by day + Held/Sold.
+          // X = hold cohort, stacked by wallet type, filterable by day.
           (async () => {
             const ssCanvas = document.getElementById('sellSourceChart');
             const ssWrap = ssCanvas.closest('.chart-wrap');
@@ -790,12 +776,11 @@
               { key: 'contract', label: 'Contract Addresses', color: '#5D7A8C' },
               { key: 'lp', label: 'LP Pools', color: '#B8914A' }
             ];
-            let mode = 'sold';   // 'held' | 'sold' (defaults to Sold)
             let activeDay = days[days.length - 1].day;
 
             function buildDatasets(day) {
               const rec = days.find(d => d.day === day) || days[days.length - 1];
-              const src = rec[mode] || {};
+              const src = rec['sold'] || {};
               const totals = {};
               const datasets = ssTypes.map(t => {
                 const data = ssCohorts.map(c => {
@@ -812,7 +797,6 @@
             function renderChart() {
               const { datasets, total } = buildDatasets(activeDay);
               if (ssChart) ssChart.destroy();
-              const modeLabel = mode === 'held' ? 'still held (by time since unlock)' : 'sold (by time from unlock to sale)';
               ssChart = new Chart(ssCanvas, {
                 type: 'bar',
                 data: { labels: ssCohorts.map(c => `Unlocked ${c} ago`), datasets },
@@ -823,7 +807,7 @@
                     legend: { labels: { color: legendColor, padding: 14 } },
                     title: {
                       display: true,
-                      text: `${activeDay} — ${mode === 'held' ? 'Held' : 'Sold'}: ${fmt(total)} VVV (${modeLabel})`,
+                      text: `${activeDay} — Sold: ${fmt(total)} VVV (sold by time from unlock to sale)`,
                       color: legendColor,
                       font: { size: 13, weight: 400 }
                     },
@@ -864,18 +848,6 @@
               strip.appendChild(el);
             });
 
-            // Filter toggle
-            const btnHeld = document.getElementById('filterHeldBtn');
-            const btnSold = document.getElementById('filterSoldBtn');
-            function setMode(m) {
-              mode = m;
-              btnHeld.classList.toggle('active', m === 'held');
-              btnSold.classList.toggle('active', m === 'sold');
-              renderChart();
-            }
-            btnHeld.addEventListener('click', () => setMode('held'));
-            btnSold.addEventListener('click', () => setMode('sold'));
-
             renderChart();
           })();
         } else {
@@ -892,8 +864,8 @@
           `"Held" means the current balance has been sitting in the wallet without being transferred (FIFO age). ` +
           `The sell-pressure chart shows VVV released to user wallets by finalizeUnstake (unlocked) that is still there, ` +
           `bucketed by time since unlock — recently-unlocked VVV is the most likely to be sold. ` +
-          `The interactive 'Where Sell Pressure Comes From' chart stacks unlocked VVV by wallet type per hold cohort, ` +
-          `lets you switch between Held (still in wallets) and Sold (moved out that day), and hover over the last 14 days to inspect each day. ` +
+          `The interactive 'Where Sell Pressure Comes From' chart stacks VVV sold by wallet type per ` +
+          `time-from-unlock-to-sale cohort, and hover over the last 14 days to inspect each day. ` +
           `As of ${holders.as_of}.`;
         holderNote.style.display = 'block';
       } else if (holders && holders.backfill_complete === false) {
