@@ -156,6 +156,9 @@
     .holder-grid canvas { height: 340px !important; }
     .holder-grid .chart-wrap { min-height: 340px; position: relative; }
     .holder-grid .chart-title { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; font-weight: 400; margin-bottom: 10px; }
+    #sellSourceWrap { position: relative; }
+    #sellSourceChart { height: 340px !important; }
+    .chart-title { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; font-weight: 400; margin-bottom: 10px; }
     .sell-filter { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
     .sell-filter-label { color: var(--muted); font-size: 12px; font-weight: 400; text-transform: uppercase; letter-spacing: .05em; }
     .sell-filter-btn {
@@ -260,7 +263,7 @@
       </div>
     </div>
 
-    <div class="panel chart-wrap" style="margin-top:24px;">
+    <div class="panel chart-wrap" id="sellSourceWrap" style="margin-top:24px;">
       <div class="chart-title">Where Sell Pressure Comes From</div>
       <div class="sell-filter">
         <span class="sell-filter-label">Filter:</span>
