@@ -229,6 +229,159 @@ def write_state(state_path, last_block, last_ts, wallets):
         json.dump(out, f, separators=(',', ':'))
 
 
+def build_daily_series(latest_num, latest_ts):
+    """Build a 14-day series of sell pressure.
+
+    Replays the last ~40 days of VVV transfers (cache-backed), maintaining the
+    same per-wallet FIFO of unlocked VVV (sender == sVVV) and consuming it on
+    outbound transfers. At each UTC day boundary it records:
+      - held: unlocked VVV still in wallets as of that day, bucketed by
+        time-since-unlock cohort, stacked by wallet type
+      - sold: unlocked VVV sold on that day, bucketed by time-from-unlock-to-sale
+        cohort, stacked by wallet type
+
+    Wallet type (user/contract/lp) reuses holders_state.json kind_cache when
+    available; unknown wallets default to 'user'.
+    """
+    lookback = int(os.environ.get('VVV_DAILY_DAYS', '40'))
+    start_block = max(1, latest_num - int(lookback * 86400 / 2))
+    try:
+        start_ts = get_block_ts(start_block)
+    except Exception:
+        start_ts = latest_ts - (latest_num - start_block) * 2
+    sec_per_block = (latest_ts - start_ts) / max(latest_num - start_block, 1)
+
+    kind_cache = {}
+    try:
+        with open(os.path.join('data', 'holders_state.json'), encoding='utf-8') as f:
+            ks = json.load(f)
+        kind_cache = {a.lower(): k for a, k in (ks.get('kind_cache') or {}).items()}
+        for a, rec in (ks.get('accounts') or {}).items():
+            kind_cache.setdefault(a.lower(), rec.get('kind', 'user'))
+    except Exception:
+        pass
+
+    cohorts = ['<24h', '1-7d', '7-30d', '30-90d', '>90d']
+    empty_day = lambda: {c: {} for c in cohorts}
+    day_of = lambda ts: datetime.datetime.utcfromtimestamp(ts).strftime('%Y-%m-%d')
+    wallets = {}
+    sold_by_day = {}
+    held_by_day = {}
+    type_cache = {}
+
+    def get_wallet(a):
+        if a not in wallets:
+            wallets[a] = {'unlocked': deque(), 'legacy': 0.0}
+        return wallets[a]
+
+    def wallet_type(addr):
+        a = addr.lower()
+        if a in LP_ADDRS:
+            return 'lp'
+        if a in (svvv.lower(), zero.lower(), dead.lower()) or a in LOCKED_ADDRS:
+            return 'excluded'
+        if a in type_cache:
+            return type_cache[a]
+        k = kind_cache.get(a)
+        if k in ('contract', 'exchange'):
+            t = 'contract'
+        elif k in ('user',):
+            t = 'user'
+        else:
+            t = 'user'
+        type_cache[a] = t
+        return t
+
+    def band_for(age_days):
+        if age_days < 1:
+            return '<24h'
+        if age_days < 7:
+            return '1-7d'
+        if age_days < 30:
+            return '7-30d'
+        if age_days < 90:
+            return '30-90d'
+        return '>90d'
+
+    current_day = None
+
+    def snapshot_held(day, tnow):
+        rec = held_by_day.setdefault(day, empty_day())
+        for a, w in wallets.items():
+            wt = wallet_type(a)
+            if wt == 'excluded':
+                continue
+            for uts, amt in w['unlocked']:
+                b = band_for((tnow - uts) / 86400.0)
+                rec[b][wt] = rec[b].get(wt, 0.0) + amt
+            if w['legacy'] > 0:
+                rec['>90d'][wt] = rec['>90d'].get(wt, 0.0) + w['legacy']
+
+    print(f'Building {lookback}d sell-pressure series from block {start_block}')
+    for _, _, batch in get_logs_venice_chunks(start_block, latest_num):
+        for lg in batch:
+            topics = lg.get('topics') or []
+            if len(topics) < 3:
+                continue
+            frm = ('0x' + topics[1][-40:]).lower()
+            to = ('0x' + topics[2][-40:]).lower()
+            amt = int(lg.get('data') or '0x0', 16) / 1e18
+            bnum = int(lg['blockNumber'], 16)
+            ts = start_ts + (bnum - start_block) * sec_per_block
+            day = day_of(ts)
+            if day != current_day:
+                if current_day is not None:
+                    snapshot_held(current_day, ts)
+                current_day = day
+
+            # unlock deposit from sVVV
+            if frm == svvv.lower() and amt > 1e-12:
+                wt = wallet_type(to)
+                if wt != 'excluded':
+                    get_wallet(to)['unlocked'].append([ts, amt])
+
+            # outbound transfer consumes unlocked VVV (sale)
+            if amt > 1e-12:
+                wt = wallet_type(frm)
+                if wt != 'excluded' and frm in wallets and wallets[frm]['unlocked']:
+                    w = wallets[frm]
+                    remaining = amt
+                    if w['legacy'] > 0:
+                        take = min(w['legacy'], remaining)
+                        w['legacy'] -= take
+                        sold_by_day.setdefault(day, empty_day())['>90d'].setdefault(wt, 0.0)
+                        sold_by_day[day]['>90d'][wt] += take
+                        remaining -= take
+                    q = w['unlocked']
+                    while remaining > 1e-12 and q:
+                        uts, qamt = q[0]
+                        if qamt <= remaining:
+                            remaining -= qamt
+                            q.popleft()
+                            b = band_for((ts - uts) / 86400.0)
+                            sold_by_day.setdefault(day, empty_day())[b].setdefault(wt, 0.0)
+                            sold_by_day[day][b][wt] += qamt
+                        else:
+                            q[0][1] = qamt - remaining
+                            b = band_for((ts - uts) / 86400.0)
+                            sold_by_day.setdefault(day, empty_day())[b].setdefault(wt, 0.0)
+                            sold_by_day[day][b][wt] += remaining
+                            remaining = 0.0
+
+    if current_day is not None:
+        snapshot_held(current_day, latest_ts)
+
+    days = sorted(set(list(sold_by_day.keys()) + list(held_by_day.keys())))[-14:]
+    series = []
+    for d in days:
+        series.append({
+            'day': d,
+            'held': {c: dict(held_by_day.get(d, {}).get(c, {})) for c in cohorts},
+            'sold': {c: dict(sold_by_day.get(d, {}).get(c, {})) for c in cohorts},
+        })
+    return series
+
+
 def main():
     state_path = os.path.join('data', 'unlock_state.json')
     out_path = os.path.join('data', 'unlock.json')
@@ -425,6 +578,16 @@ def main():
             json.dump(placeholder, f, indent=2)
 
     write_state(state_path, last_block, last_ts, wallets)
+
+    # 14-day daily sell-pressure series (only meaningful once caught up)
+    if caught_up:
+        try:
+            daily = build_daily_series(latest_num, latest_ts)
+            with open(os.path.join('data', 'unlock_daily.json'), 'w', encoding='utf-8') as f:
+                json.dump({'as_of': summary['as_of'], 'days': daily}, f, indent=2)
+            print(f'  wrote {len(daily)} days of sell-pressure series')
+        except Exception as e:
+            print(f'  ERROR building daily sell-pressure series: {e}')
 
     print('Unlocked VVV sell pressure:')
     for k, v in summary['hold_bands_by_age_since_unlock'].items():
