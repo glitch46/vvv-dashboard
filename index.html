@@ -599,9 +599,9 @@
         const cat = holders.categories || {};
         // Exchange balances fold into contract addresses (exchanges are contracts on-chain).
         const order = [
-          { key: 'lp', label: 'LP Pools', color: '#F5A623' },
-          { key: 'contract', label: 'Contract Addresses', color: '#8E6BB8' },
-          { key: 'user', label: 'User Wallets', color: '#4CAF7D' }
+          { key: 'lp', label: 'LP Pools', color: '#B8914A' },
+          { key: 'contract', label: 'Contract Addresses', color: '#5D7A8C' },
+          { key: 'user', label: 'User Wallets', color: '#6F7D4E' }
         ];
         const catLabels = order.map(o => o.label);
         const catData = order.map(o => Number(cat[o.key] || 0));
@@ -643,7 +643,7 @@
         const bandOrder = ['<24h', '1-7d', '7-30d', '30-90d', '90-180d', '180-365d', '>365d'];
         const bandLabels = bandOrder.map(b => `Held ${b}`);
         const bandData = bandOrder.map(b => Number(bands[b] || 0));
-        const bandColors = ['#CF6679', '#E8853D', '#F5A623', '#B8A13C', '#8E6BB8', '#6B8EDB', '#4CAF7D'];
+        const bandColors = ['#8A3B36', '#A65D2F', '#C29A5B', '#B8914A', '#5D7A8C', '#7E8C52', '#5C6B3F'];
 
         new Chart(document.getElementById('holdAgeChart'), {
           type: 'bar',
@@ -689,7 +689,7 @@
           const ubOrder = ['<24h', '1-7d', '7-30d', '30-90d', '>90d'];
           const ubLabels = ubOrder.map(b => `Unlocked ${b} ago`);
           const ubData = ubOrder.map(b => Number(ub[b] || 0));
-          const ubColors = ['#CF6679', '#E8853D', '#F5A623', '#B8A13C', '#4CAF7D'];
+          const ubColors = ['#8A3B36', '#A65D2F', '#C29A5B', '#B8914A', '#5C6B3F'];
 
           new Chart(document.getElementById('circulationChart'), {
             type: 'bar',
@@ -750,7 +750,7 @@
                 ],
                 datasets: [{
                   data: [shortTerm, longTerm],
-                  backgroundColor: ['#E8853D', '#4CAF7D'],
+                  backgroundColor: ['#A65D2F', '#6F7D4E'],
                   borderColor: 'rgba(10,10,10,0.6)',
                   borderWidth: 2,
                   hoverOffset: 6
