@@ -260,21 +260,22 @@
       </div>
     </div>
 
+    <div class="panel chart-wrap" style="margin-top:24px;">
+      <div class="chart-title">Where Sell Pressure Comes From</div>
+      <div class="sell-filter">
+        <span class="sell-filter-label">Filter:</span>
+        <button class="sell-filter-btn active" id="filterSoldBtn" data-mode="sold">Sold</button>
+        <button class="sell-filter-btn" id="filterHeldBtn" data-mode="held">Held</button>
+      </div>
+      <canvas id="sellSourceChart"></canvas>
+      <div class="sell-datestrip" id="sellDateStrip"></div>
+      <div class="sell-datestrip-label" id="sellDateLabel">Hover a date to inspect that day</div>
+    </div>
+
     <div class="grid charts holder-grid" style="margin-top:24px;">
       <div class="panel chart-wrap"><div class="chart-title">Where Circulating VVV Is Held</div><canvas id="holderDoughnutChart"></canvas></div>
       <div class="panel chart-wrap"><div class="chart-title">How Long User-Held VVV Has Been Held</div><canvas id="holdAgeChart"></canvas></div>
       <div class="panel chart-wrap"><div class="chart-title">Unlocked VVV in Wallets — Sell Pressure</div><canvas id="circulationChart"></canvas></div>
-      <div class="panel chart-wrap">
-        <div class="chart-title">Where Sell Pressure Comes From</div>
-        <div class="sell-filter">
-          <span class="sell-filter-label">Filter:</span>
-          <button class="sell-filter-btn active" id="filterHeldBtn" data-mode="held">Held</button>
-          <button class="sell-filter-btn" id="filterSoldBtn" data-mode="sold">Sold</button>
-        </div>
-        <canvas id="sellSourceChart"></canvas>
-        <div class="sell-datestrip" id="sellDateStrip"></div>
-        <div class="sell-datestrip-label" id="sellDateLabel">Hover a date to inspect that day</div>
-      </div>
     </div>
     <div class="panel" id="holderNote" style="margin-top:24px; display:none;">
       <span style="color: var(--muted); font-size: 14px; font-weight: 300;" id="holderNoteText"></span>
@@ -780,7 +781,7 @@
               { key: 'contract', label: 'Contract Addresses', color: '#5D7A8C' },
               { key: 'lp', label: 'LP Pools', color: '#B8914A' }
             ];
-            let mode = 'held';   // 'held' | 'sold'
+            let mode = 'sold';   // 'held' | 'sold' (defaults to Sold)
             let activeDay = days[days.length - 1].day;
 
             function buildDatasets(day) {
