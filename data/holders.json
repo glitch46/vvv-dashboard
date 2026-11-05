@@ -1,40 +1,40 @@
 {
-  "as_of": "2026-11-04 20:07 UTC",
-  "latest_block": 53516742,
+  "as_of": "2026-11-05 00:13 UTC",
+  "latest_block": 53524128,
   "backfill_complete": true,
-  "circulating_total": 14603580.36,
+  "circulating_total": 14606717.91,
   "categories": {
-    "lp": 450753.64,
-    "contract": 1913328.34,
-    "user": 12239498.38,
-    "locked": 32138372.14,
-    "excluded": 55121305.57
+    "lp": 472659.35,
+    "contract": 1889633.01,
+    "user": 12244425.55,
+    "locked": 32138418.7,
+    "excluded": 55118121.36
   },
   "lp_pools": {
-    "Aerodrome VVV/WETH": 179630.58,
-    "Aerodrome VVV/WETH v3": 146368.51,
-    "Uniswap V3 VVV/WETH": 40608.5,
-    "Uniswap V3 VVV/USDC": 30732.87,
-    "Aerodrome VVV/WETH v5": 28878.39,
-    "Aerodrome VVV/WETH v2": 12671.29,
-    "Aerodrome VVV/WETH v4": 4658.39,
-    "Aerodrome VVV/WETH v6": 2586.5,
-    "Aerodrome VVV/USDC": 2550.21,
-    "Uniswap V3 VVV/WETH alt": 1835.31,
-    "Hydrex VVV/USDC": 227.25,
-    "Uniswap V3 VVV/USDC alt": 5.83,
+    "Aerodrome VVV/WETH": 182128.33,
+    "Aerodrome VVV/WETH v3": 166370.89,
+    "Uniswap V3 VVV/WETH": 41980.49,
+    "Uniswap V3 VVV/USDC": 32169.32,
+    "Aerodrome VVV/WETH v5": 23826.2,
+    "Aerodrome VVV/WETH v2": 13835.56,
+    "Aerodrome VVV/WETH v4": 4891.46,
+    "Aerodrome VVV/WETH v6": 2674.54,
+    "Aerodrome VVV/USDC": 2566.55,
+    "Uniswap V3 VVV/WETH alt": 1978.85,
+    "Hydrex VVV/USDC": 231.27,
+    "Uniswap V3 VVV/USDC alt": 5.89,
     "PancakeSwap VVV/cbBTC": 0.02
   },
   "exchanges": {
-    "Gate.io": 83420.78
+    "Gate.io": 75718.88
   },
   "contracts": {
     "0xe261b366f231b12fcb58d6bbd71e57faee82431d": 274602.07,
-    "0xbb345d35450bf9ee76f3d2ce214e8e7ac5e1071d": 184129.69,
-    "0xcfc7dc24e9d302976f0b1efb90a4d9b22b54b2a5": 179603.54,
-    "0x01271a205e3f37cbfc9b353170d726060e193c0d": 98192.22,
-    "0x8fc836d9650a9839e8e5c4edc22912378779ad03": 94701.55,
-    "Gate.io": 83420.78,
+    "0xbb345d35450bf9ee76f3d2ce214e8e7ac5e1071d": 184384.64,
+    "0xcfc7dc24e9d302976f0b1efb90a4d9b22b54b2a5": 182220.82,
+    "0x01271a205e3f37cbfc9b353170d726060e193c0d": 99040.48,
+    "0x8fc836d9650a9839e8e5c4edc22912378779ad03": 91833.78,
+    "Gate.io": 75718.88,
     "0x3dc7bef7868a2d7accd56f919a8b126d41f3e0bb": 64835.38,
     "0x878a0a3c656a8029b000f47d8d94fad9edcc3508": 54272.97,
     "0x73d8bd54f7cf5fab43fe4ef40a62d390644946db": 48762.31,
@@ -42,45 +42,45 @@
     "0xcd7e8635e1f19b23584d01f16b4056576e79e93f": 45117.86,
     "0xfb5cf1164e6efcffdaed4d953677af9c5d049458": 34299.29,
     "0x2677c4c8757da1857cc7cc4071e0e0dd32ccb975": 32943.26,
-    "0x96d5f4ceb694a5ef4ae6f27fd9a384762cd0f2ab": 31105.64,
     "0x5ece3095b6b9fcd6e4566dfd440be4f7609baded": 30954.04,
-    "0xd4a769a3788cc1cfe61f20336ca31e7b1a85a5bd": 27844.01,
+    "0xd4a769a3788cc1cfe61f20336ca31e7b1a85a5bd": 28017.22,
     "0x69be413d648ae00f0fbd9856f1355e22b36ee5e0": 23593.18,
-    "0x35fb3b67c57849bf57eb24b061eef0b5e560dc57": 17559.79,
+    "0x35fb3b67c57849bf57eb24b061eef0b5e560dc57": 17832.98,
     "0xfa57851acd8e4528817afd4f1ddb6b725f40bb40": 16785.13,
-    "0x78bbcfecdc6aa6b80235972f97f2c2db1b72ae97": 15999.82,
+    "0x78bbcfecdc6aa6b80235972f97f2c2db1b72ae97": 16000.0,
+    "0x96d5f4ceb694a5ef4ae6f27fd9a384762cd0f2ab": 15970.31,
     "0x8a17c37ae3bac3fcd9f2f5303f7330fdccf5862b": 15242.58,
     "0x54a7a885367799310900830331af8220fad730fb": 13665.4,
     "0x976644c7ed9784e5758bb6584dbe3b91420e3463": 12702.06,
     "0x915c07c3ca126646c3002da6ce97c5ba9d7f7355": 12576.16,
     "0xc228f155a72f4c8d6bbcc95a61815fc6578db110": 12449.59,
     "0xcd76e4e8d7f498a728cfafe088fb3e6fcbbfab21": 12075.76,
+    "0x47f626ee4d5c2ac74f715703aa37cf604c5834a4": 10467.34,
     "0x5d64d14d2cf4fe5fe4e65b1c7e3d11e18d493091": 10351.83,
-    "0x47f626ee4d5c2ac74f715703aa37cf604c5834a4": 10229.16,
     "0x17a30350771d02409046a683b18fe1c13ccfc4a8": 9986.84,
     "0x28473085ba4aa761eb541914f50a75dd685cd47b": 9530.37,
+    "0x498581ff718922c3f8e6a244956af099b2652b2b": 9448.03,
     "0x2906bb18ba0c9d828c1fe1d46182a6a8c7b98fe5": 9105.13,
-    "0x498581ff718922c3f8e6a244956af099b2652b2b": 9083.56,
     "0x22ba28b589013497c91a7f3b0f33e2732e62ff5d": 8498.28,
     "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb": 8475.64,
     "0x4408e7932715e83a3e5c5379933637e46526452c": 8133.17,
     "0x29cfdbd641e467bf4c592442e8f4fba791d499b1": 7559.28,
     "0x18bef2a17bca3a278e9c23e30cbd45fa35090a75": 7151.75,
     "0x94977e407466708a8b23a56903012645ac2dad03": 6912.11,
-    "0x51c72848c68a965f66fa7a88855f9f7784502a7f": 6785.3,
-    "0xae584e19b512bb16e1d64f2c9ea9965c57ee3ca3": 6192.32
+    "0x51c72848c68a965f66fa7a88855f9f7784502a7f": 6636.37,
+    "0xae584e19b512bb16e1d64f2c9ea9965c57ee3ca3": 6077.52
   },
   "user_hold_bands": {
-    "<24h": 429569.47,
-    "1-7d": 1865200.73,
-    "7-30d": 3380189.45,
-    "30-90d": 2024588.21,
-    "90-180d": 2520007.22,
-    "180-365d": 1324589.89,
-    ">365d": 692201.52
+    "<24h": 454993.7,
+    "1-7d": 1854589.39,
+    "7-30d": 3395408.16,
+    "30-90d": 2000323.61,
+    "90-180d": 2498432.74,
+    "180-365d": 1345355.68,
+    ">365d": 692164.79
   },
-  "avg_hold_days": 90.7,
-  "user_holder_count": 15414,
+  "avg_hold_days": 90.8,
+  "user_holder_count": 15418,
   "top_users": [
     {
       "address": "0x0810a411a9c4f4c9dd0cb5d95dfb9aa95a02f043",
@@ -88,7 +88,7 @@
     },
     {
       "address": "0xbaed383ede0e5d9d72430661f3285daa77e9439f",
-      "balance": 1270491.37
+      "balance": 1249228.91
     },
     {
       "address": "0x419eedf956b684521a463252e9a90ba915615eab",
@@ -96,19 +96,19 @@
     },
     {
       "address": "0xd201266154f0f69c93fbfed1a5945e0dc7043da0",
-      "balance": 362198.57
+      "balance": 361775.83
     },
     {
       "address": "0x841ed663f2636863d40be4ee76243377dff13a34",
-      "balance": 345959.43
+      "balance": 346438.57
     },
     {
       "address": "0x44a3e0f35fe1f2fbaa4310873a8a8125babec61b",
-      "balance": 338220.87
+      "balance": 338827.44
     },
     {
       "address": "0xc8802feab2fafb48b7d1ade77e197002c210f391",
-      "balance": 292218.03
+      "balance": 291311.94
     },
     {
       "address": "0xbc7f570c408840d27b6f12448c36567c2531a194",
@@ -120,7 +120,7 @@
     },
     {
       "address": "0xfd4fa5533e236037088adebb9b1b2ff2672f442e",
-      "balance": 238366.21
+      "balance": 234310.83
     },
     {
       "address": "0xd2dd7b597fd2435b6db61ddf48544fd931e6869f",
@@ -212,7 +212,7 @@
     },
     {
       "address": "0x2cff890f0378a11913b6129b2e97417a2c302680",
-      "balance": 54304.25
+      "balance": 54277.49
     },
     {
       "address": "0xd2fae4ace1076bb05c015c1144ff0ed6f62c6075",
@@ -251,12 +251,16 @@
       "balance": 47403.6
     },
     {
-      "address": "0x4e3ae00e8323558fa5cac04b152238924aa31b60",
-      "balance": 43267.87
+      "address": "0xfa04579f682d8a80fd04d7c6567bad6716bc8f12",
+      "balance": 43903.39
     },
     {
       "address": "0x35e456334f461f194f70c71cec942e37cb80aee2",
       "balance": 43200.0
+    },
+    {
+      "address": "0x4e3ae00e8323558fa5cac04b152238924aa31b60",
+      "balance": 43099.95
     },
     {
       "address": "0x1a9d699aee3a56ca49d0cc3b542ae3a37885a3e1",
@@ -277,10 +281,6 @@
     {
       "address": "0x359f5919f585564139074080a85d0f38717196aa",
       "balance": 33812.57
-    },
-    {
-      "address": "0xa0d66bab5f04cb3055cc2f6b0494cb33be32c2c2",
-      "balance": 32696.44
     }
   ]
 }
