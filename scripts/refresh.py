@@ -79,7 +79,7 @@ def is_transient(err):
     if is_rate_limit(err):
         return True
     return any(x in msg for x in ('ssl', 'timeout', 'timed out', 'connection', 'reset',
-                                  'refused', 'eof', '5' in msg and 'http 5', 'ssl3',
+                                  'refused', 'eof', 'http 5', '5xx', 'ssl3',
                                   'invalid_session', 'bad record', 'tlsv1', 'bad record mac',
                                   'temporary failure', 'name resolution', 'unreachable'))
 
