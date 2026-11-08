@@ -218,20 +218,48 @@ def get_logs(address, topic, from_block, to_block, pref_cand):
     return logs
 
 
-def decode_amount_events(logs, from_block, from_ts, avg_block_time):
+def decode_amount_events(logs, ts_for_block):
     events = []
     for log in logs:
         topics = log.get('topics') or []
         if len(topics) < 2:
             continue
         block_num = int(log['blockNumber'], 16)
-        ts = from_ts + (block_num - from_block) * avg_block_time
+        ts = ts_for_block(block_num)
         events.append({
             'ts': ts,
             'user': '0x' + topics[1][-40:].lower(),
             'amount': int(log.get('data') or '0x0', 16) / 1e18
         })
     return events
+
+
+def build_ts_resolver(from_num, from_ts, latest_num, latest_ts):
+    """Return a block->ts function anchored on a coarse grid of real block
+    timestamps. Block time on this chain varies (as low as ~0.2s/block), so
+    a single linear rate can skew UTC day attribution at day boundaries."""
+    anchors = [(from_num, from_ts)]
+    span = max(latest_num - from_num, 1)
+    for i in range(1, 10):
+        b = from_num + int(span * i / 10)
+        try:
+            num, ts = get_block(b)
+            anchors.append((num, ts))
+        except Exception:
+            pass
+    anchors.append((latest_num, latest_ts))
+    anchors.sort()
+
+    def resolver(block):
+        lo = anchors[0]
+        for hi in anchors[1:]:
+            if block <= hi[0]:
+                if hi[0] <= lo[0]:
+                    return lo[1]
+                return lo[1] + (block - lo[0]) * (hi[1] - lo[1]) / (hi[0] - lo[0])
+            lo = hi
+        return lo[1]
+    return resolver
 
 
 def load_existing_daily():
@@ -283,31 +311,52 @@ if existing_days:
 
 end_day = datetime.datetime.utcfromtimestamp(latest_ts).date()
 
-# Incremental: only fetch logs since the last data day (plus a small overlap).
+# Incremental: only fetch logs since the last data day (plus a small overlap),
+# but always re-fetch a rolling window of the last few days so any day that
+# previously got recorded as 0 (e.g. a short fetch window) is reconciled.
+reconcile_days = int(os.environ.get('VVV_RECONCILE_DAYS', '5'))
 if last_data_day is not None:
-    start_day = last_data_day - datetime.timedelta(days=2)
+    start_day = min(last_data_day - datetime.timedelta(days=2),
+                    end_day - datetime.timedelta(days=reconcile_days))
 else:
     start_day = end_day - datetime.timedelta(days=LOOKBACK_DAYS)
 
 epoch = datetime.datetime(1970, 1, 1)
 target_start_ts = int((datetime.datetime(start_day.year, start_day.month, start_day.day) - epoch).total_seconds())
-# Approximate blocks per second using the current block time (Base ~2s).
-blocks_per_day = 43200
-from_block = max(0, latest_num - int((latest_ts - target_start_ts) / 2.0) - blocks_per_day)
+# Find the first block at or after the target start time by binary search on
+# real block timestamps. Block time on this chain varies a lot (~0.2 to ~1.2
+# s/block), so estimating from a fixed rate is unreliable and makes the fetch
+# window land in the wrong place, which then zeroes out whole days.
+def block_at_timestamp(target_ts):
+    lo, hi = 1, latest_num
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if get_block(mid)[1] < target_ts:
+            lo = mid + 1
+        else:
+            hi = mid
+    return lo
+
 try:
+    # buffer a bit before the target so the first day is fully covered
+    from_block = max(0, block_at_timestamp(target_start_ts) - 200000)
     from_num, from_ts = get_block(from_block)
 except Exception as e:
-    print(f"Lookback block fetch failed ({e}), using estimate")
-    from_num, from_ts = from_block, target_start_ts
+    print(f"Lookback block fetch failed ({e}), estimating conservatively")
+    # Fall back to a fast block-time assumption so we over-fetch rather than
+    # under-fetch (under-fetching would leave whole days as zeros).
+    sec_per_block = 0.1
+    from_num = max(0, latest_num - int((latest_ts - target_start_ts) / sec_per_block) - 432000)
+    from_ts = target_start_ts
 
-avg_block_time = (latest_ts - from_ts) / max(latest_num - from_num, 1)
 pref = RPC_CANDIDATES[0]
 print(f"RPC={pref['name']} blocks={from_num}->{latest_num} chunk={pref['chunk']} last_data_day={last_data_day}")
 
 unstake_logs = get_logs(svvv, UNSTAKE_TOPIC, from_num, latest_num, pref)
 stake_logs = get_logs(svvv, STAKE_TOPIC, from_num, latest_num, pref)
-unstake_events = decode_amount_events(unstake_logs, from_num, from_ts, avg_block_time)
-stake_events = decode_amount_events(stake_logs, from_num, from_ts, avg_block_time)
+ts_for_block = build_ts_resolver(from_num, from_ts, latest_num, latest_ts)
+unstake_events = decode_amount_events(unstake_logs, ts_for_block)
+stake_events = decode_amount_events(stake_logs, ts_for_block)
 print(f"Fetched {len(unstake_events)} UnstakeInitiated and {len(stake_events)} Staked events")
 
 initiated_by_day = defaultdict(lambda: {'amount': 0.0, 'users': set()})
@@ -321,7 +370,10 @@ for ev in stake_events:
     rec['amount'] += ev['amount']
     rec['users'].add(ev['user'])
 
-fetched_from_day = start_day
+# Only days the log fetch actually reached may be treated as "covered" (and
+# thus zeroed when no events were found). Days before the real from_block are
+# left untouched so a short/partial fetch can't zero out older history.
+fetched_from_day = datetime.datetime.utcfromtimestamp(from_ts).date()
 chart_start = end_day - datetime.timedelta(days=30)
 all_days = daterange(chart_start, end_day)
 

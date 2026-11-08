@@ -138,6 +138,17 @@
       text-align: center;
       text-shadow: 0 4px 14px rgba(0,0,0,0.44);
     }
+    .data-asof {
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      margin: -28px 0 34px;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    }
+    .data-asof.warn { color: var(--negative); }
+    .forecast-pending { color: var(--muted); font-weight: 300; }
     .grid { display: grid; gap: 20px; }
     .kpis { grid-template-columns: repeat(4, minmax(0,1fr)); }
     .panel {
@@ -240,6 +251,7 @@
       </svg>
     </h1>
     <div class="hero-subtitle">Unstaking / Staking Analytics</div>
+    <div class="data-asof" id="dataAsOf"></div>
 
     <div class="grid kpis" id="kpis"></div>
     <div class="legend-hint">Click on a legend item to show/hide</div>
@@ -359,6 +371,18 @@
       const unlocks = daily.map(d => Number(d.unlock_amount || 0));
       const stakedAmount = daily.map(d => Number(d.staked_amount || 0));
       const stakedUsers = daily.map(d => Number(d.staked_users || 0));
+
+      // Show data freshness so stale/gapped data is obvious instead of dead-looking.
+      const dataAsOf = document.getElementById('dataAsOf');
+      if (dataAsOf) {
+        const lastDataDay = labels.length ? labels[labels.length - 1] : null;
+        if (lastDataDay) {
+          const nowUtc = new Date().toISOString().slice(0, 10);
+          const fresh = lastDataDay >= nowUtc;
+          dataAsOf.textContent = `Data through ${lastDataDay}` + (fresh ? '' : ' — may be stale');
+          if (!fresh) dataAsOf.classList.add('warn');
+        }
+      }
       const rawPrice = daily.map(d => d.vvv_price_usd === null || d.vvv_price_usd === undefined ? null : Number(d.vvv_price_usd));
       const price = [];
       let last = null;
@@ -414,7 +438,10 @@
 
       const avgUnlockLine = labels.map(() => avgUnlock);
 
-      // Generate 7-day unlock forecast based on initiations 7 days ago
+      // Generate 7-day unlock forecast based on initiations 7 days ago.
+      // amount is null when the initiation data for that day hasn't been
+      // recorded yet (stale/gapped data) so the UI can show "pending" instead
+      // of a misleading $0.00.
       const today = new Date();
       const forecast = [];
       for (let i = 0; i < 7; i++) {
@@ -425,14 +452,14 @@
         initDate.setDate(unlockDate.getDate() - 7);
         const initDateStr = initDate.toISOString().slice(0, 10);
         const initData = daily.find(d => d.day === initDateStr);
-        const amount = initData ? Number(initData.initiated_amount || 0) : 0;
+        const amount = initData ? Number(initData.initiated_amount || 0) : null;
         forecast.push({ date: unlockDateStr, amount: amount });
       }
 
       // Extend unlock chart to show 7 days forward
       const futureLabels = forecast.map(f => f.date);
       const extendedLabels = labels.concat(futureLabels);
-      const extendedUnlocks = unlocks.concat(forecast.map(f => f.amount));
+      const extendedUnlocks = unlocks.concat(forecast.map(f => (f.amount === null ? 0 : f.amount)));
       const extendedAvgUnlock = extendedLabels.map(() => avgUnlock);
       const lastPrice = price.length ? price[price.length - 1] : null;
       const extendedPrice = price.concat(forecast.map(() => null));
@@ -601,7 +628,12 @@
         
         const amountEl = document.createElement('span');
         amountEl.className = 'forecast-amount';
-        amountEl.textContent = fmt(item.amount) + ' VVV';
+        if (item.amount === null) {
+          amountEl.classList.add('forecast-pending');
+          amountEl.textContent = 'Data pending';
+        } else {
+          amountEl.textContent = fmt(item.amount) + ' VVV';
+        }
         
         li.appendChild(dateEl);
         li.appendChild(amountEl);
