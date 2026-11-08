@@ -1,16 +1,16 @@
 {
-  "as_of": "2026-11-08 08:27 UTC",
-  "latest_block": 54680296,
+  "as_of": "2026-11-08 12:27 UTC",
+  "latest_block": 54752226,
   "backfill_complete": true,
-  "unlocked_still_held": 552793.76,
-  "total_unlocked_alltime": 52207390.37,
-  "total_sold": 51654596.62,
+  "unlocked_still_held": 553098.1,
+  "total_unlocked_alltime": 52207811.62,
+  "total_sold": 51654713.52,
   "hold_bands_by_age_since_unlock": {
-    "<24h": 4283.92,
-    "1-7d": 24545.45,
-    "7-30d": 35591.16,
-    "30-90d": 241996.12,
-    ">90d": 246377.12
+    "<24h": 4597.44,
+    "1-7d": 24542.57,
+    "7-30d": 32973.28,
+    "30-90d": 244606.93,
+    ">90d": 246377.88
   },
   "avg_days_unlock_to_sale": 85.9
 }
