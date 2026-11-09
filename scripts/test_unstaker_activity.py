@@ -363,6 +363,16 @@ class IndexedHistoryTests(unittest.TestCase):
         self.assertEqual(params[0]['pageKey'], 'page2')
         self.assertTrue(params[0]['withMetadata'])
 
+    def test_authenticated_verifier_preference_retains_venice_fallback(self):
+        with patch.dict(activity.os.environ, {'ALCHEMY_API_KEY': 'fixture-alchemy',
+                'VENICE_API_KEY': 'fixture-venice', 'VVV_ACTIVITY_RPC_PROVIDER': 'alchemy'}):
+            rpc = activity.RPC(10)
+        self.assertEqual(rpc.providers[0], rpc.index_provider)
+        self.assertIn('api.venice.ai', rpc.providers[1][0])
+        with patch.dict(activity.os.environ, {'VVV_ACTIVITY_RPC_PROVIDER': 'invalid'}):
+            with self.assertRaisesRegex(ValueError, 'VVV_ACTIVITY_RPC_PROVIDER'):
+                activity.RPC(10)
+
     def test_indexed_block_metadata_is_receipt_matched_and_consistent(self):
         rpc = Mock()
         rpc.blocks = {}

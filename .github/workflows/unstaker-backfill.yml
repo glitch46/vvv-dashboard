@@ -11,6 +11,14 @@ on:
         description: History lookback in days, or all for lifetime VVV activity
         required: false
         default: 'all'
+      rpc_provider:
+        description: Preferred archive verifier; other authenticated sources remain fallbacks
+        type: choice
+        options:
+          - alchemy
+          - venice
+          - auto
+        default: alchemy
 
 permissions:
   contents: write
@@ -25,6 +33,8 @@ jobs:
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: master
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -34,6 +44,7 @@ jobs:
           ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
           VVV_ACTIVITY_BUDGET_SECONDS: ${{ inputs.budget_seconds }}
           VVV_ACTIVITY_HISTORY_DAYS: ${{ inputs.history_days }}
+          VVV_ACTIVITY_RPC_PROVIDER: ${{ inputs.rpc_provider }}
         run: |
           python -u scripts/unstaker_activity.py || echo "::warning::Archive verification incomplete; checkpoint saved for the next run."
       - name: Commit verified activity and indexing checkpoint

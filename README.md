@@ -59,6 +59,11 @@ older backfill is pending. The chart retains the last verified snapshot.
 Wallets with no verified claims still show a separate historical context and
 transaction table (staking deposits, other staking payments and transfers),
 without treating those activities as unstake sales.
+The manual backfill's `rpc_provider=alchemy` option uses Alchemy's faster archive
+read pace, retaining Venice as a fallback. `venice`/`auto` preserve Venice-first
+verification. Both paths require the same receipt evidence and closing-balance
+reconciliation. Queued refreshes check out the latest master checkpoint when
+they start so a preceding backfill's progress is not lost.
 
 - Timing starts at an **actual verified unstake claim**, not cooldown expiry.
   Reward transfers from sVVV during an initiation/stake are not assumed claims.

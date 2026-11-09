@@ -120,6 +120,12 @@ class RPC:
             self.index_provider = (f'https://base-mainnet.g.alchemy.com/v2/{alchemy_key}', {})
             self.providers.append(self.index_provider)
             self.has_transfer_index = os.environ.get('VVV_ACTIVITY_HISTORY_SOURCE', 'auto') != 'rpc'
+        preference = os.environ.get('VVV_ACTIVITY_RPC_PROVIDER', 'auto').lower()
+        if preference not in ('auto', 'venice', 'alchemy'):
+            raise ValueError('VVV_ACTIVITY_RPC_PROVIDER must be auto, venice or alchemy')
+        if preference == 'alchemy' and self.index_provider:
+            self.providers.remove(self.index_provider)
+            self.providers.insert(0, self.index_provider)
         self.providers.extend((url, {}) for url in dict.fromkeys([
             os.environ.get('PUBLICNODE_RPC_URL', 'https://base-rpc.publicnode.com'),
             os.environ.get('BASE_RPC_URL', 'https://mainnet.base.org')]))
@@ -135,7 +141,11 @@ class RPC:
         for url, headers in providers:
             for attempt in range(3):
                 self.check()
-                time.sleep(max(0, 0.65 - (time.monotonic() - self.last_request)))
+                # Venice is limited to ~100 requests/minute. Indexed Alchemy
+                # and archive reads can use a faster pace, still backing off
+                # on 429s rather than imposing Venice's cap on every provider.
+                gap = 0.12 if self.index_provider and url == self.index_provider[0] else 0.65
+                time.sleep(max(0, gap - (time.monotonic() - self.last_request)))
                 request = urllib.request.Request(url, data=json.dumps({
                     'jsonrpc': '2.0', 'id': 1, 'method': method, 'params': params}).encode(),
                     headers={'Content-Type': 'application/json', 'User-Agent': 'vvv-wallet-activity', **headers})
