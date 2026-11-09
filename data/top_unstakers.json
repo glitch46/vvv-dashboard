@@ -1,0 +1,90 @@
+{
+  "as_of": "2026-11-09",
+  "days": 30,
+  "wallets": [
+    {
+      "address": "0xa87597a0aad36554a1dec8a09cc4724d99e4d2f8",
+      "amount": 500000.0,
+      "count": 1,
+      "last_day": "2026-11-06",
+      "kind": "user"
+    },
+    {
+      "address": "0x021dcdeae23627d70ec710f793a0280d420d9c20",
+      "amount": 100842.0,
+      "count": 1,
+      "last_day": "2026-11-06",
+      "kind": "user"
+    },
+    {
+      "address": "0x0792b96ab761071a9ff00913a41f2a599040e2ba",
+      "amount": 50000.0,
+      "count": 2,
+      "last_day": "2026-11-09",
+      "kind": "user"
+    },
+    {
+      "address": "0x73756f71f69797997b0ca9f23f9ee127434954e1",
+      "amount": 21029.42,
+      "count": 1,
+      "last_day": "2026-11-03",
+      "kind": "contract"
+    },
+    {
+      "address": "0xe8d8bb57edf69e4daf806ba60bf2658c81eb91db",
+      "amount": 15805.84,
+      "count": 1,
+      "last_day": "2026-11-07",
+      "kind": "user"
+    },
+    {
+      "address": "0x416301691d75f29ce8ea355246d3c87baa65d38b",
+      "amount": 10000.0,
+      "count": 1,
+      "last_day": "2026-11-04",
+      "kind": "user"
+    },
+    {
+      "address": "0x47f74aaa5afdf83087b60b530f27f44d94fa570a",
+      "amount": 9777.8,
+      "count": 1,
+      "last_day": "2026-11-08",
+      "kind": "user"
+    },
+    {
+      "address": "0x2ac2e916db47a996b4b15e7005d45eb2fe5a7c33",
+      "amount": 9000.0,
+      "count": 1,
+      "last_day": "2026-11-08",
+      "kind": "user"
+    },
+    {
+      "address": "0x54678a5ac6dc70d434564bffcc23c62e6d5793a2",
+      "amount": 5025.0,
+      "count": 1,
+      "last_day": "2026-11-02",
+      "kind": "user"
+    },
+    {
+      "address": "0x82eb45562f991329ed2867f43fc60f0ba52c3dab",
+      "amount": 4000.0,
+      "count": 1,
+      "last_day": "2026-10-31",
+      "kind": "contract"
+    },
+    {
+      "address": "0xde116ec3507780a72a89de08a26bc40d2920f44b",
+      "amount": 3720.38,
+      "count": 1,
+      "last_day": "2026-11-08",
+      "kind": "user"
+    },
+    {
+      "address": "0x49ee4c8ef056aa65be6be8fcfcffcc19b7122754",
+      "amount": 3064.95,
+      "count": 1,
+      "last_day": "2026-11-03",
+      "kind": "user"
+    }
+  ]
+}
