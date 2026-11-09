@@ -218,48 +218,49 @@ def get_logs(address, topic, from_block, to_block, pref_cand):
     return logs
 
 
-def decode_amount_events(logs, ts_for_block):
+def decode_amount_events(logs, day_for_block):
     events = []
     for log in logs:
         topics = log.get('topics') or []
         if len(topics) < 2:
             continue
         block_num = int(log['blockNumber'], 16)
-        ts = ts_for_block(block_num)
         events.append({
-            'ts': ts,
+            'day': day_for_block(block_num),
             'user': '0x' + topics[1][-40:].lower(),
             'amount': int(log.get('data') or '0x0', 16) / 1e18
         })
     return events
 
 
-def build_ts_resolver(from_num, from_ts, latest_num, latest_ts):
-    """Return a block->ts function anchored on a coarse grid of real block
-    timestamps. Block time on this chain varies (as low as ~0.2s/block), so
-    a single linear rate can skew UTC day attribution at day boundaries."""
-    anchors = [(from_num, from_ts)]
-    span = max(latest_num - from_num, 1)
-    for i in range(1, 10):
-        b = from_num + int(span * i / 10)
+def build_day_assigner(first_day, end_day):
+    """Return a block->day function that bins events by UTC day using the
+    actual first block of each day. Block time on this chain varies a lot, so
+    interpolating timestamps can push events across day boundaries; using real
+    boundary blocks keeps attribution exact regardless of block-time drift."""
+    resolved = []
+    lo = 1
+    for offset in range((end_day - first_day).days + 2):
+        day = first_day + datetime.timedelta(days=offset)
+        target_ts = int(datetime.datetime(day.year, day.month, day.day).timestamp())
         try:
-            num, ts = get_block(b)
-            anchors.append((num, ts))
+            b = block_at_timestamp(target_ts, lo)
+            lo = b + 1
+            resolved.append((day.isoformat(), b))
         except Exception:
             pass
-    anchors.append((latest_num, latest_ts))
-    anchors.sort()
+    if len(resolved) < 2:
+        raise RuntimeError('Could not resolve UTC day boundaries for attribution')
 
-    def resolver(block):
-        lo = anchors[0]
-        for hi in anchors[1:]:
-            if block <= hi[0]:
-                if hi[0] <= lo[0]:
-                    return lo[1]
-                return lo[1] + (block - lo[0]) * (hi[1] - lo[1]) / (hi[0] - lo[0])
-            lo = hi
-        return lo[1]
-    return resolver
+    def assign(block):
+        day = resolved[0][0]
+        for bd, bb in resolved[1:]:
+            if block >= bb:
+                day = bd
+            else:
+                break
+        return day
+    return assign
 
 
 def load_existing_daily():
@@ -327,8 +328,9 @@ target_start_ts = int((datetime.datetime(start_day.year, start_day.month, start_
 # real block timestamps. Block time on this chain varies a lot (~0.2 to ~1.2
 # s/block), so estimating from a fixed rate is unreliable and makes the fetch
 # window land in the wrong place, which then zeroes out whole days.
-def block_at_timestamp(target_ts):
-    lo, hi = 1, latest_num
+def block_at_timestamp(target_ts, lo=1, hi=None):
+    if hi is None:
+        hi = latest_num
     while lo < hi:
         mid = (lo + hi) // 2
         if get_block(mid)[1] < target_ts:
@@ -349,31 +351,32 @@ except Exception as e:
     from_num = max(0, latest_num - int((latest_ts - target_start_ts) / sec_per_block) - 432000)
     from_ts = target_start_ts
 
+# Only days the log fetch actually reached may be treated as "covered" (and
+# thus zeroed when no events were found). Days before the real from_block are
+# left untouched so a short/partial fetch can't zero out older history.
+fetched_from_day = datetime.datetime.utcfromtimestamp(from_ts).date()
+
 pref = RPC_CANDIDATES[0]
 print(f"RPC={pref['name']} blocks={from_num}->{latest_num} chunk={pref['chunk']} last_data_day={last_data_day}")
 
 unstake_logs = get_logs(svvv, UNSTAKE_TOPIC, from_num, latest_num, pref)
 stake_logs = get_logs(svvv, STAKE_TOPIC, from_num, latest_num, pref)
-ts_for_block = build_ts_resolver(from_num, from_ts, latest_num, latest_ts)
-unstake_events = decode_amount_events(unstake_logs, ts_for_block)
-stake_events = decode_amount_events(stake_logs, ts_for_block)
+day_for_block = build_day_assigner(fetched_from_day, end_day)
+unstake_events = decode_amount_events(unstake_logs, day_for_block)
+stake_events = decode_amount_events(stake_logs, day_for_block)
 print(f"Fetched {len(unstake_events)} UnstakeInitiated and {len(stake_events)} Staked events")
 
 initiated_by_day = defaultdict(lambda: {'amount': 0.0, 'users': set()})
 staked_by_day = defaultdict(lambda: {'amount': 0.0, 'users': set()})
 for ev in unstake_events:
-    rec = initiated_by_day[day_key(ev['ts'])]
+    rec = initiated_by_day[ev['day']]
     rec['amount'] += ev['amount']
     rec['users'].add(ev['user'])
 for ev in stake_events:
-    rec = staked_by_day[day_key(ev['ts'])]
+    rec = staked_by_day[ev['day']]
     rec['amount'] += ev['amount']
     rec['users'].add(ev['user'])
 
-# Only days the log fetch actually reached may be treated as "covered" (and
-# thus zeroed when no events were found). Days before the real from_block are
-# left untouched so a short/partial fetch can't zero out older history.
-fetched_from_day = datetime.datetime.utcfromtimestamp(from_ts).date()
 chart_start = end_day - datetime.timedelta(days=30)
 all_days = daterange(chart_start, end_day)
 
