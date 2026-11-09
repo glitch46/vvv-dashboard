@@ -356,6 +356,18 @@ except Exception as e:
 # left untouched so a short/partial fetch can't zero out older history.
 fetched_from_day = datetime.datetime.utcfromtimestamp(from_ts).date()
 
+# Wallet classification for the top-unstakers breakdown (reuses the holder
+# indexer's kind cache; unknown wallets default to 'user').
+kind_cache = {}
+try:
+    with open(os.path.join('data', 'holders_state.json'), encoding='utf-8') as f:
+        ks = json.load(f)
+    kind_cache = {a.lower(): k for a, k in (ks.get('kind_cache') or {}).items()}
+    for a, rec in (ks.get('accounts') or {}).items():
+        kind_cache.setdefault(a.lower(), rec.get('kind', 'user'))
+except Exception:
+    pass
+
 pref = RPC_CANDIDATES[0]
 print(f"RPC={pref['name']} blocks={from_num}->{latest_num} chunk={pref['chunk']} last_data_day={last_data_day}")
 
@@ -585,6 +597,28 @@ with open('data/summary.json', 'w', encoding='utf-8') as f:
     f.write(json.dumps(summary, indent=2, default=str))
 with open('data/supply.json', 'w', encoding='utf-8') as f:
     f.write(json.dumps([supply_summary], indent=2, default=str))
+
+# Top wallets by UnstakeInitiated in the last 30 days, with classification,
+# so the dashboard can show who is driving sell pressure.
+lookback_start = (end_day - datetime.timedelta(days=30)).isoformat()
+top_agg = defaultdict(lambda: {'amount': 0.0, 'count': 0, 'last_day': None})
+for ev in unstake_events:
+    if ev['day'] >= lookback_start:
+        r = top_agg[ev['user']]
+        r['amount'] += ev['amount']
+        r['count'] += 1
+        if r['last_day'] is None or ev['day'] > r['last_day']:
+            r['last_day'] = ev['day']
+top_unstakers = sorted([{
+    'address': a,
+    'amount': round(r['amount'], 2),
+    'count': r['count'],
+    'last_day': r['last_day'],
+    'kind': kind_cache.get(a.lower(), 'user')
+} for a, r in top_agg.items()], key=lambda x: -x['amount'])[:12]
+with open('data/top_unstakers.json', 'w', encoding='utf-8') as f:
+    f.write(json.dumps({'as_of': end_day.isoformat(), 'days': 30, 'wallets': top_unstakers},
+                       indent=2, default=str))
 
 print(f"Data refreshed successfully through {end_day.isoformat()} ({len(rows)} days)")
 if rows:
