@@ -1,0 +1,22 @@
+name: Check Wallet Activity Sources
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check authenticated source capabilities without exposing keys
+        env:
+          VENICE_API_KEY: ${{ secrets.VENICE_API_KEY }}
+          ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
+        run: python -u scripts/probe_activity_sources.py
