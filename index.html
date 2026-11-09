@@ -183,6 +183,23 @@
       box-shadow: 0 0 0 1px var(--accent-dim), 0 0 12px rgba(245,166,35,0.25);
     }
     .sell-datestrip-label { color: var(--muted); font-size: 12px; margin-top: 8px; font-weight: 500; }
+    .unstaker-status { color: var(--muted); font-size: 13px; line-height: 1.6; margin: 8px 0 14px; }
+    .unstaker-status a, .unstaker-history a { color: var(--accent); overflow-wrap: anywhere; }
+    .unstaker-wallets { display: grid; grid-template-columns: repeat(auto-fit, minmax(124px, 1fr)); gap: 8px; margin-top: 16px; }
+    .unstaker-wallets button { min-width: 0; font-family: inherit; background: rgba(12,12,12,0.35); color: var(--text-warm); }
+    .unstaker-wallets button small { display: block; margin-top: 5px; font-size: 11px; color: var(--muted); font-weight: 400; }
+    .unstaker-wallets button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+    .unstaker-method { margin-top: 16px; color: var(--muted); font-size: 12px; line-height: 1.7; }
+    .unstaker-method summary { color: var(--text-warm); cursor: pointer; }
+    .unstaker-history { overflow-x: auto; margin-top: 14px; }
+    .unstaker-history table { width: 100%; border-collapse: collapse; white-space: nowrap; font-size: 12px; text-align: right; }
+    .unstaker-history caption { text-align: left; color: var(--text-warm); margin-bottom: 8px; }
+    .unstaker-history th, .unstaker-history td { padding: 8px; border-bottom: 1px solid var(--border-hover); }
+    .unstaker-history th:first-child, .unstaker-history td:first-child { text-align: left; }
+    #topUnstakersWrap .sell-chart-box { height: 380px; }
+    #topUnstakersChart { max-height: none; }
+    #topUnstakersChart[hidden], .unstaker-placeholder[hidden] { display: none !important; }
+    .unstaker-placeholder { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 14px; text-align: center; padding: 24px; }
     .forecast-list { list-style: none; margin: 0; padding: 0; }
     .forecast-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border); transition: background 0.2s ease; }
     .forecast-item:last-child { border-bottom: none; }
@@ -280,16 +297,21 @@
     </div>
 
     <div class="panel chart-wrap" id="topUnstakersWrap" style="margin-top:24px;">
-      <div class="chart-title">Who Initiated the Most Unstakes (Last 30 Days)</div>
-      <div class="sell-chart-box">
-        <canvas id="topUnstakersChart"></canvas>
+      <div class="chart-title">Largest Unstakers Activity</div>
+      <div class="unstaker-status" id="unstakerStatus" role="status" aria-live="polite">Loading the top seven unstakers from the last seven days…</div>
+      <div class="sell-chart-box" id="unstakerChartBox">
+        <div class="unstaker-placeholder" id="unstakerEmpty">Verified wallet history will appear here after indexing.</div>
+        <canvas id="topUnstakersChart" hidden role="img" aria-label="Post-claim VVV activity by elapsed time for the selected wallet"></canvas>
       </div>
-      <div class="sell-datestrip-label" style="margin-top:8px;">
-        <span style="color:#6F7D4E;">■ user</span> &nbsp;
-        <span style="color:#5D7A8C;">■ contract</span> &nbsp;
-        <span style="color:#B8914A;">■ LP</span> &nbsp;
-        <span style="color:#8A3B36;">■ locked/team</span> — hover a bar for the full wallet address
-      </div>
+      <div class="unstaker-wallets" id="unstakerWallets" role="group" aria-label="Largest unstakers in the last seven days"></div>
+      <div class="sell-datestrip-label" id="unstakerSummary"></div>
+      <details class="unstaker-method">
+        <summary>How this activity is measured</summary>
+        <p>Wallets are ranked dynamically by VVV unstake initiations over the rolling last seven days. The chart follows verified claims made by the selected wallet in the last 90 days. Timing starts when VVV is actually claimed after cooldown, not when unstaking is initiated.</p>
+        <p>Stacked bars distinguish verified swaps, transfers to other wallets, other contract transfers, re-staking, and the balance still held. A transfer or exchange deposit is not proof of a sale. Swap verification requires a supported pool Swap event, a traced VVV input and a non-VVV token output to the wallet in the same transaction. Unsupported swaps remain unverified transfers.</p>
+        <p>VVV is fungible: claim attribution uses FIFO across the wallet’s full VVV balance, including unrelated deposits and its opening balance. “Still holding” means still in the original wallet; funds are not followed after a transfer. Staking reward payments without a verified unstake claim are excluded. Recent claims have had less time to be sold. Wallet links do not establish team or investor ownership.</p>
+        <div class="unstaker-history" id="unstakerHistory"></div>
+      </details>
     </div>
 
     <div class="grid charts holder-grid" style="margin-top:24px;">
@@ -900,59 +922,6 @@
           document.getElementById('sellSourceChart').closest('.chart-wrap').style.display = 'none';
         }
 
-        // Top wallets by unstake initiations (who drives the sell pressure).
-        (async () => {
-          const tuWrap = document.getElementById('topUnstakersWrap');
-          let tu = null;
-          try { tu = await loadJSON('data/top_unstakers.json'); } catch (e) { tu = null; }
-          const wallets = (tu && tu.wallets) || [];
-          if (!wallets.length) {
-            tuWrap.style.display = 'none';
-            return;
-          }
-          const kindColors = { user: '#6F7D4E', contract: '#5D7A8C', lp: '#B8914A', locked: '#8A3B36' };
-          const labels = wallets.map(w => w.address.slice(0, 6) + '…' + w.address.slice(-4));
-          new Chart(document.getElementById('topUnstakersChart'), {
-            type: 'bar',
-            data: {
-              labels,
-              datasets: [{
-                label: 'VVV unstake initiated',
-                data: wallets.map(w => w.amount),
-                backgroundColor: wallets.map(w => kindColors[w.kind] || '#6F7D4E'),
-                borderColor: 'rgba(10,10,10,0.6)',
-                borderWidth: 1,
-                borderRadius: 5
-              }]
-            },
-            options: {
-              indexAxis: 'y',
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: { display: false },
-                tooltip: {
-                  callbacks: {
-                    label: (ctx) => ` ${fmt(ctx.parsed.x)} VVV initiated`,
-                    afterLabel: (ctx) => {
-                      const w = wallets[ctx.dataIndex];
-                      return [
-                        ` wallet: ${w.address}`,
-                        ` type: ${w.kind}`,
-                        ` events: ${w.count}${w.last_day ? ', last: ' + w.last_day : ''}`
-                      ].join('\n');
-                    }
-                  }
-                }
-              },
-              scales: {
-                x: { ticks: { color: axisColor, callback: (v) => fmt(v) }, grid: { color: gridColor } },
-                y: { ticks: { color: axisColor }, grid: { color: gridColor } }
-              }
-            }
-          });
-        })();
-
         // Note with context
         const lpNames = Object.keys(holders.lp_pools || {}).slice(0, 6).join(', ');
         holderNoteText.innerHTML =
@@ -978,5 +947,6 @@
 
     })();
   </script>
+  <script src="scripts/unstaker_activity.js"></script>
 </body>
 </html>

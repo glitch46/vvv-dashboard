@@ -1,0 +1,51 @@
+name: Backfill Unstaker Activity
+
+on:
+  workflow_dispatch:
+    inputs:
+      budget_seconds:
+        description: Maximum indexing time; progress is saved between runs
+        required: false
+        default: '1800'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: vvv-data-refresh
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Retrieve indexed history and verify receipts via Venice RPC
+        env:
+          VENICE_API_KEY: ${{ secrets.VENICE_API_KEY }}
+          ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
+          VVV_ACTIVITY_BUDGET_SECONDS: ${{ inputs.budget_seconds }}
+        run: |
+          python -u scripts/unstaker_activity.py || echo "::warning::Archive verification incomplete; checkpoint saved for the next run."
+      - name: Commit verified activity and indexing checkpoint
+        run: |
+          git add data/top_unstakers.json
+          if [ -f data/unstaker_activity_state.json ]; then git add data/unstaker_activity_state.json; fi
+          if ! git diff --cached --quiet; then
+            git -c user.name="github-actions" -c user.email="github-actions@github.com" commit -m "chore: refresh wallet activity"
+            git -c user.name="github-actions" -c user.email="github-actions@github.com" pull --rebase origin master
+            git push origin HEAD:master
+          fi
+      - name: Save activity snapshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unstaker-activity
+          retention-days: 7
+          path: |
+            data/top_unstakers.json
+            data/unstaker_activity_state.json

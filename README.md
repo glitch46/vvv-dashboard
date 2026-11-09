@@ -27,6 +27,49 @@ Replays the same VVV `Transfer` logs and maintains a per-wallet FIFO of "unlocke
 ## Refresh
 GitHub Actions runs every 4 hours and overwrites the JSON files.
 
+### Largest Unstakers Activity
+
+`scripts/unstaker_activity.py` independently generates `data/top_unstakers.json`
+(schema version 2). It ranks the **top seven wallets by unstake initiations over
+the rolling last seven days**, then follows each selected wallet's **90-day VVV
+history**. `data/unstaker_activity_state.json` checkpoints both log scanning and
+transaction verification so the first backfill can span several refreshes.
+The activity step has its own 15-minute budget and does not block the existing
+stake, holder or sell-pressure charts. Incomplete history is shown as indexing,
+not as zero sales. Last verified output is retained if ranking fails.
+
+For the initial backfill, the **Backfill Unstaker Activity** workflow can run
+independently of the slower full dashboard refresh. It uses the repository's
+existing `ALCHEMY_API_KEY` for paginated Base ERC20 transfer discovery and
+`VENICE_API_KEY` for archive receipts, blocks, transactions and balance reads.
+Each indexed transaction is checked against its exact VVV receipt logs before
+it enters the replay. Indexed amounts/labels are never treated as evidence of
+a claim or sale. Receipts, page cursors and per-wallet progress are persisted;
+after backfill, only new blocks need scanning. If the indexed API is unavailable,
+the worker falls back to the resumable archive RPC path. Use
+`VVV_ACTIVITY_HISTORY_SOURCE=rpc` to force that fallback.
+
+- Timing starts at an **actual verified unstake claim**, not cooldown expiry.
+  Reward transfers from sVVV during an initiation/stake are not assumed claims.
+- Non-overlapping buckets: under 24h, 24–48h, 48–72h, 3–7 days, over 7 days,
+  plus the claim balance **still in the original wallet**.
+- Stacked series separate verified swaps, transfers to other wallets, other
+  contract transfers, re-staking and still-held VVV. An exchange deposit or
+  arbitrary transfer is never called a sale.
+- Supported sale evidence: wallet-signed V2, V3 and Slipstream swaps, verified
+  pool token identities, a traced VVV input and a non-VVV ERC20 output from
+  that pool back to the wallet in the same receipt. Unsupported routing,
+  native-ETH outputs and V4 swaps remain **unverified transfers**.
+- Claim attribution is FIFO over **all** wallet VVV (including its historical
+  opening balance and unrelated inflows). It is an accounting convention for
+  fungible tokens, not proof of ownership or intent. The replay must reconcile
+  with the on-chain closing balance before history is marked complete.
+- `VVV_ACTIVITY_BUDGET_SECONDS` controls the per-run time budget;
+  `VVV_ACTIVITY_LOG_CHUNK` is capped at 40,000 blocks to avoid oversized queries.
+
+Run the isolated evidence/accounting tests with:
+`python -m unittest discover -s scripts -p "test_unstaker_activity.py" -v`.
+
 ## Supply data (Venice Crypto RPC on Base)
 
 The supply pie chart uses Venice Crypto RPC against `base-mainnet`.

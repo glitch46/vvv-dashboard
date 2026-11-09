@@ -11,6 +11,10 @@ env:
 permissions:
   contents: write
 
+concurrency:
+  group: vvv-data-refresh
+  cancel-in-progress: false
+
 jobs:
   refresh:
     runs-on: ubuntu-latest
@@ -29,6 +33,13 @@ jobs:
           VVV_LOCKED_ADDRESSES: ${{ secrets.VVV_LOCKED_ADDRESSES }}
           VVV_BURN_ADDRESSES: ${{ secrets.VVV_BURN_ADDRESSES }}
         run: python scripts/refresh.py
+      - name: Build largest unstakers activity (7-day ranking, 90-day history)
+        env:
+          VENICE_API_KEY: ${{ secrets.VENICE_API_KEY }}
+          ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
+          VVV_ACTIVITY_BUDGET_SECONDS: '900'
+        run: |
+          python -u scripts/unstaker_activity.py || echo "::warning::Wallet activity indexing incomplete; retaining last verified data and checkpoint."
       - name: Build holder distribution (Venice RPC)
         env:
           VENICE_API_KEY: ${{ secrets.VENICE_API_KEY }}
