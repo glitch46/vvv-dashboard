@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "as_of": "2026-11-09T14:50:04Z",
+  "as_of": "2026-11-09T15:14:12Z",
   "ranking_days": 7,
   "history_days": 90,
   "ranking_complete": true,
@@ -17,57 +17,485 @@
       "address": "0xa87597a0aad36554a1dec8a09cc4724d99e4d2f8",
       "initiated_amount": 500000.0,
       "initiation_count": 1,
-      "history_start": "2026-08-11T14:50:04Z",
-      "status": "indexing",
-      "progress": 0
+      "history_start": "2026-08-11T15:14:12Z",
+      "status": "complete",
+      "progress": 100,
+      "history_source": "alchemy+rpc-receipts",
+      "series": {
+        "sold": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "transferred": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "other_transfer": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "restaked": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "held": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "claims": [],
+      "claim_count": 0,
+      "observed_days": 90.0,
+      "unreconciled_outflow": 0.0,
+      "history_as_of": "2026-11-09T15:14:12Z"
     },
     {
       "address": "0x021dcdeae23627d70ec710f793a0280d420d9c20",
       "initiated_amount": 100842.0,
       "initiation_count": 1,
-      "history_start": "2026-08-11T14:50:04Z",
-      "status": "indexing",
-      "progress": 0
+      "history_start": "2026-08-11T15:14:12Z",
+      "status": "complete",
+      "progress": 100,
+      "history_source": "alchemy+rpc-receipts",
+      "series": {
+        "sold": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "transferred": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "other_transfer": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "restaked": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "held": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "claims": [],
+      "claim_count": 0,
+      "observed_days": 90.0,
+      "unreconciled_outflow": 0.0,
+      "history_as_of": "2026-11-09T15:14:12Z"
     },
     {
       "address": "0x0792b96ab761071a9ff00913a41f2a599040e2ba",
       "initiated_amount": 25000.0,
       "initiation_count": 1,
-      "history_start": "2026-08-11T14:50:04Z",
-      "status": "indexing",
-      "progress": 0
+      "history_start": "2026-08-11T15:14:12Z",
+      "status": "complete",
+      "progress": 100,
+      "history_source": "alchemy+rpc-receipts",
+      "series": {
+        "sold": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "transferred": [
+          43716.61480863,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "other_transfer": [
+          31283.38519137,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "restaked": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "held": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "claims": [
+        {
+          "claimed_at": "2026-10-25T06:55:43Z",
+          "tx": "0xdc7462797eac49f3c653ecbd90a2da33ecf9fca1adbdd35fff759a1b206d4f70",
+          "claimed": 25000.0,
+          "sold": 0.0,
+          "transferred": 18716.61480863,
+          "other_transfer": 6283.38519137,
+          "restaked": 0.0,
+          "held": 0.0
+        },
+        {
+          "claimed_at": "2026-11-01T15:11:51Z",
+          "tx": "0xaccb1f290a6ffae762e49025c482c576246758348111711c7392f31764654e95",
+          "claimed": 25000.0,
+          "sold": 0.0,
+          "transferred": 25000.0,
+          "other_transfer": 0.0,
+          "restaked": 0.0,
+          "held": 0.0
+        },
+        {
+          "claimed_at": "2026-11-09T03:23:24Z",
+          "tx": "0xa65774bfd4cd136ce45cfc5ec4884acc9dcb861c9267eea0b45aec7cea95146f",
+          "claimed": 25000.0,
+          "sold": 0.0,
+          "transferred": 0.0,
+          "other_transfer": 25000.0,
+          "restaked": 0.0,
+          "held": 0.0
+        }
+      ],
+      "claim_count": 3,
+      "observed_days": 90.0,
+      "unreconciled_outflow": 0.0,
+      "history_as_of": "2026-11-09T15:14:12Z"
     },
     {
       "address": "0x73756f71f69797997b0ca9f23f9ee127434954e1",
       "initiated_amount": 21029.41938185,
       "initiation_count": 1,
-      "history_start": "2026-08-11T14:50:04Z",
-      "status": "indexing",
-      "progress": 0
+      "history_start": "2026-08-11T15:14:12Z",
+      "status": "complete",
+      "progress": 100,
+      "history_source": "alchemy+rpc-receipts",
+      "series": {
+        "sold": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "transferred": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "other_transfer": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "restaked": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "held": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "claims": [],
+      "claim_count": 0,
+      "observed_days": 90.0,
+      "unreconciled_outflow": 0.0,
+      "history_as_of": "2026-11-09T15:14:12Z"
+    },
+    {
+      "address": "0x8dac92aaad999a6181488b8546bbfb540eddc9c3",
+      "initiated_amount": 20316.0,
+      "initiation_count": 1,
+      "history_start": "2026-08-11T15:14:12Z",
+      "status": "complete",
+      "progress": 100,
+      "history_source": "alchemy+rpc-receipts",
+      "series": {
+        "sold": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "transferred": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "other_transfer": [
+          1184.31072645,
+          0.0,
+          0.0,
+          425.0,
+          6075.0,
+          0.0
+        ],
+        "restaked": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "held": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          1315.68927355
+        ]
+      },
+      "claims": [
+        {
+          "claimed_at": "2026-08-31T03:55:09Z",
+          "tx": "0x74bde3b563d62237e1c7ac378efec73ee629bea4d1dbd55088718929e439269d",
+          "claimed": 1000.0,
+          "sold": 0.0,
+          "transferred": 0.0,
+          "other_transfer": 1000.0,
+          "restaked": 0.0,
+          "held": 0.0
+        },
+        {
+          "claimed_at": "2026-09-07T03:58:39Z",
+          "tx": "0x49c2835f436acb901792846dd75d4063d700f0903e99cccf0ac69733d317c94c",
+          "claimed": 2000.0,
+          "sold": 0.0,
+          "transferred": 0.0,
+          "other_transfer": 2000.0,
+          "restaked": 0.0,
+          "held": 0.0
+        },
+        {
+          "claimed_at": "2026-10-04T03:52:51Z",
+          "tx": "0x6660ea9abe4d8f081cc7531c4caeec6e0e0aca0a7fced7100ecc27f8d857564a",
+          "claimed": 1000.0,
+          "sold": 0.0,
+          "transferred": 0.0,
+          "other_transfer": 1000.0,
+          "restaked": 0.0,
+          "held": 0.0
+        },
+        {
+          "claimed_at": "2026-10-11T04:38:23Z",
+          "tx": "0x667c7c951a1340defa2040a4bc6f1b1be2d5f0738734512190c10eb34a24b928",
+          "claimed": 1500.0,
+          "sold": 0.0,
+          "transferred": 0.0,
+          "other_transfer": 1500.0,
+          "restaked": 0.0,
+          "held": 0.0
+        },
+        {
+          "claimed_at": "2026-10-18T05:12:49Z",
+          "tx": "0x8dd5b9777a843ffb440fc54e9e3903337f8511b45f8345496fb91fcaafd50e55",
+          "claimed": 2000.0,
+          "sold": 0.0,
+          "transferred": 0.0,
+          "other_transfer": 2000.0,
+          "restaked": 0.0,
+          "held": 0.0
+        },
+        {
+          "claimed_at": "2026-11-09T15:05:20Z",
+          "tx": "0x5881d2e3ea779fb8789bfbecc536098b22fd88a36f58c583e63bd4d57ecc847f",
+          "claimed": 1500.0,
+          "sold": 0.0,
+          "transferred": 0.0,
+          "other_transfer": 184.31072645,
+          "restaked": 0.0,
+          "held": 1315.68927355
+        }
+      ],
+      "claim_count": 6,
+      "observed_days": 90.0,
+      "unreconciled_outflow": 0.0,
+      "history_as_of": "2026-11-09T15:14:12Z"
     },
     {
       "address": "0xe8d8bb57edf69e4daf806ba60bf2658c81eb91db",
       "initiated_amount": 15805.83638692,
       "initiation_count": 1,
-      "history_start": "2026-08-11T14:50:04Z",
-      "status": "indexing",
-      "progress": 0
+      "history_start": "2026-08-11T15:14:12Z",
+      "status": "complete",
+      "progress": 100,
+      "history_source": "alchemy+rpc-receipts",
+      "series": {
+        "sold": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "transferred": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "other_transfer": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "restaked": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "held": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "claims": [],
+      "claim_count": 0,
+      "observed_days": 90.0,
+      "unreconciled_outflow": 0.0,
+      "history_as_of": "2026-11-09T15:14:12Z"
     },
     {
       "address": "0x416301691d75f29ce8ea355246d3c87baa65d38b",
       "initiated_amount": 10000.0,
       "initiation_count": 1,
-      "history_start": "2026-08-11T14:50:04Z",
-      "status": "indexing",
-      "progress": 0
-    },
-    {
-      "address": "0x47f74aaa5afdf83087b60b530f27f44d94fa570a",
-      "initiated_amount": 9777.79547688,
-      "initiation_count": 1,
-      "history_start": "2026-08-11T14:50:04Z",
-      "status": "indexing",
-      "progress": 0
+      "history_start": "2026-08-11T15:14:12Z",
+      "status": "complete",
+      "progress": 100,
+      "history_source": "alchemy+rpc-receipts",
+      "series": {
+        "sold": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "transferred": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "other_transfer": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "restaked": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "held": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "claims": [],
+      "claim_count": 0,
+      "observed_days": 90.0,
+      "unreconciled_outflow": 0.0,
+      "history_as_of": "2026-11-09T15:14:12Z"
     }
   ]
 }
