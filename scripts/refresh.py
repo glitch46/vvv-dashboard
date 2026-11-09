@@ -453,6 +453,18 @@ initiated_amount = {}
 initiated_users = {}
 staked_amount = {}
 staked_users = {}
+# Guardrail: if the whole log fetch came back empty while history has
+# activity, keep the prior values instead of rewriting the series to zeros.
+# A fully-empty fetch almost always means a broken/partial RPC reply, not a
+# genuine multi-day lull, and silent zeros are exactly the "data died" bug.
+unstake_fetch_empty = len(unstake_events) == 0
+stake_fetch_empty = len(stake_events) == 0
+if unstake_fetch_empty and any(float((existing_days.get(d) or {}).get('initiated_amount') or 0) > 0
+                               for d in existing_days):
+    print('WARN: unstake log fetch returned zero events despite prior activity; preserving prior values')
+if stake_fetch_empty and any(float((existing_days.get(d) or {}).get('staked_amount') or 0) > 0
+                             for d in existing_days):
+    print('WARN: stake log fetch returned zero events despite prior activity; preserving prior values')
 for day in all_days:
     key = day.isoformat()
     prev = existing_days.get(key, {})
@@ -461,8 +473,12 @@ for day in all_days:
         initiated_amount[key] = initiated_by_day[key]['amount']
         initiated_users[key] = len(initiated_by_day[key]['users'])
     elif covered:
-        initiated_amount[key] = 0.0
-        initiated_users[key] = 0
+        if unstake_fetch_empty:
+            initiated_amount[key] = float(prev.get('initiated_amount') or 0)
+            initiated_users[key] = int(prev.get('initiated_users') or 0)
+        else:
+            initiated_amount[key] = 0.0
+            initiated_users[key] = 0
     else:
         initiated_amount[key] = float(prev.get('initiated_amount') or 0)
         initiated_users[key] = int(prev.get('initiated_users') or 0)
@@ -470,8 +486,12 @@ for day in all_days:
         staked_amount[key] = staked_by_day[key]['amount']
         staked_users[key] = len(staked_by_day[key]['users'])
     elif covered:
-        staked_amount[key] = 0.0
-        staked_users[key] = 0
+        if stake_fetch_empty:
+            staked_amount[key] = float(prev.get('staked_amount') or 0)
+            staked_users[key] = int(prev.get('staked_users') or 0)
+        else:
+            staked_amount[key] = 0.0
+            staked_users[key] = 0
     else:
         staked_amount[key] = float(prev.get('staked_amount') or 0)
         staked_users[key] = int(prev.get('staked_users') or 0)
