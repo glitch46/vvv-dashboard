@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Top seven initiators (rolling 7d), and their verified post-claim activity (90d).
+"""Top seven initiators (rolling 7d), and their verified post-claim activity.
 
 Independent, resumable indexer: never imports refresh.py (which runs on import).
 Amounts stay in wei until publication. FIFO is an attribution convention, not
@@ -49,6 +49,15 @@ def topic_address(address):
 
 def utc(timestamp):
     return dt.datetime.fromtimestamp(timestamp, dt.timezone.utc).isoformat().replace('+00:00', 'Z')
+
+
+def history_window(now, setting):
+    if setting.lower() == 'all':
+        return 0, None
+    days = int(setting)
+    if not 1 <= days <= 3650:
+        raise ValueError('VVV_ACTIVITY_HISTORY_DAYS must be all or 1–3650')
+    return max(0, now - days * DAY), days
 
 
 def atomic_json(path, data):
@@ -154,8 +163,8 @@ class RPC:
         if not self.index_provider:
             raise IndexUnavailable('No authenticated transfer index is configured')
         options = {'fromBlock': hex(start), 'toBlock': hex(end),
-                   'contractAddresses': [VVV], 'category': ['erc20'],
-                   'excludeZeroValue': True, 'maxCount': '0x3e8', 'order': 'asc',
+                    'contractAddresses': [VVV], 'category': ['erc20'],
+                   'excludeZeroValue': True, 'withMetadata': True, 'maxCount': '0x3e8', 'order': 'asc',
                    'fromAddress' if direction == 'outgoing' else 'toAddress': address}
         if page_key:
             options['pageKey'] = page_key
@@ -409,18 +418,70 @@ def analyze_wallet(wallet, logs, opening, claim_amounts, sale_amounts, contracts
         if cycle and claimed_at >= since:
             buckets['held'][-1] += balance
             cycle['held'] += balance
+    claimed_total = sum(cycle['claimed'] for cycle in cycles)
     for cycle in cycles:
         for key in ['claimed'] + KINDS:
             cycle[key] = round(cycle[key] / UNIT, 8)
     return {'series': {key: [round(value / UNIT, 8) for value in values] for key, values in buckets.items()},
             'claims': cycles[-50:], 'claim_count': len(cycles),
+            'claimed_total': round(claimed_total / UNIT, 8),
             'observed_days': round((now - since) / DAY, 1),
             'balance_wei': sum(lot[1] for lot in lots),
             'unreconciled_outflow': round(unexplained_out / UNIT, 8)}
 
 
+def wallet_context(wallet, logs, claims, sales, timestamps):
+    """Useful history even when there have been no verified unstake claims.
+
+    These are ALL wallet movements, deliberately separate from FIFO claim
+    outcomes. Staking deposits and reward/other payments aren't called sales.
+    """
+    by_tx = defaultdict(list)
+    incoming = outgoing = staked = staking_received = 0
+    for move in transfers(logs):
+        if move['from'] == move['to']:
+            continue
+        by_tx[move['tx']].append(move)
+        if move['to'] == wallet:
+            incoming += move['amount']
+            if move['from'] == STAKING:
+                staking_received += move['amount']
+        elif move['from'] == wallet:
+            outgoing += move['amount']
+            if move['to'] == STAKING:
+                staked += move['amount']
+    ordered = sorted(by_tx, key=lambda tx: (by_tx[tx][0]['block'], by_tx[tx][0]['index']))
+    rows = []
+    for tx in ordered[-12:]:
+        moves = by_tx[tx]
+        received = sum(move['amount'] for move in moves if move['to'] == wallet)
+        sent = sum(move['amount'] for move in moves if move['from'] == wallet)
+        stake = sum(move['amount'] for move in moves if move['from'] == wallet and move['to'] == STAKING)
+        payment = sum(move['amount'] for move in moves if move['to'] == wallet and move['from'] == STAKING)
+        claimed = min(payment, claims.get(tx, 0))
+        sold = min(sent, sales.get(tx, 0))
+        actions = [(claimed, 'Verified unstake claim'), (sold, 'Verified swap'),
+                   (stake, 'Staked VVV'), (max(0, payment - claimed), 'Other staking payment'),
+                   (max(0, sent - sold - stake), 'Transferred VVV'),
+                   (max(0, received - payment), 'Received VVV')]
+        for amount, action in actions:
+            if amount:
+                rows.append({'at': utc(timestamps[str(moves[0]['block'])]), 'tx': tx,
+                             'action': action, 'amount': round(amount / UNIT, 8)})
+    first = by_tx[ordered[0]][0] if ordered else None
+    last = by_tx[ordered[-1]][0] if ordered else None
+    return {'history_summary': {'transactions': len(by_tx),
+            'first_activity_at': utc(timestamps[str(first['block'])]) if first else None,
+            'last_activity_at': utc(timestamps[str(last['block'])]) if last else None,
+            'received_vvv': round(incoming / UNIT, 8), 'sent_vvv': round(outgoing / UNIT, 8),
+            'staked_vvv': round(staked / UNIT, 8),
+            'other_staking_payments': round(max(0, staking_received - sum(claims.values())) / UNIT, 8)},
+            'recent_activity': rows[-20:]}
+
+
 def scan(rpc, state, key, address, topics_list, start, latest, save):
-    section = state.setdefault(key, {'next_block': start, 'logs': []})
+    section = state.setdefault(key, {'start_block': start, 'next_block': start, 'logs': []})
+    section['start_block'] = max(start, section.get('start_block', start))
     cursor = max(start, section['next_block'])
     section['logs'] = [log for log in section['logs'] if log['block'] >= start]
     chunks = 0
@@ -450,9 +511,14 @@ def indexed_history(rpc, cache, address, start, latest, save):
 
     Freeze the range while paging (page keys depend on the original query).
     Checkpoint each receipt so an interrupted page does not repeat archive reads.
-    The index's rounded amounts, human labels and timestamps are never used as
-    claim/sale evidence. A balance reconciliation is still required downstream.
+    The index's rounded amounts and human labels are never used as claim/sale
+    evidence. Block metadata supplies timestamps only after receipt block
+    matching; missing metadata falls back to RPC. Balances must still reconcile.
     """
+    if cache.get('indexed_history', {}).get('start', start) > start:
+        # A wider requested lookback needs new page keys, but immutable receipt
+        # caches are retained. Never reuse a 90-day cursor as lifetime coverage.
+        del cache['indexed_history']
     indexed = cache.setdefault('indexed_history', {'start': start, 'end': latest,
         'directions': {direction: {'page': None, 'done': False} for direction in ('outgoing', 'incoming')},
         'transactions': [], 'logs': []})
@@ -478,6 +544,15 @@ def indexed_history(rpc, cache, address, start, latest, save):
                            and topic_address(address) in log['topics'][1:]]
                 if not matched or any(log['block'] != block for log in matched):
                     raise RuntimeError('Indexed transaction did not match its on-chain receipt')
+                timestamp = (entry.get('metadata') or {}).get('blockTimestamp')
+                if timestamp:
+                    parsed = dt.datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                    if parsed.tzinfo is None:
+                        raise RuntimeError('Indexed block timestamp has no timezone')
+                    timestamp = int(parsed.timestamp())
+                    if str(block) in rpc.blocks and rpc.blocks[str(block)] != timestamp:
+                        raise RuntimeError('Indexed block timestamp disagrees with cached RPC timestamp')
+                    rpc.blocks[str(block)] = timestamp
                 indexed['logs'].extend(matched)
                 indexed['transactions'].append(tx)
                 processed.add(tx)
@@ -489,14 +564,20 @@ def indexed_history(rpc, cache, address, start, latest, save):
             save()
     # A completed indexed snapshot becomes the normal incremental log cache.
     unique = {(log['tx'], log['index']): log for log in indexed['logs'] if log['block'] >= start}
-    cache['history'] = {'next_block': indexed['end'] + 1, 'logs': list(unique.values()), 'source': 'alchemy+rpc-receipts'}
+    cache['history'] = {'start_block': start, 'next_block': indexed['end'] + 1,
+                        'logs': list(unique.values()), 'source': 'alchemy+rpc-receipts'}
     del cache['indexed_history']
     save()
 
 
 def wallet_history(rpc, cache, address, start, latest, save):
     history = cache.get('history', {})
-    if getattr(rpc, 'has_transfer_index', False) is True and not history.get('source'):
+    if history and 'start_block' not in history:
+        # Migrate the completed 90-day caches created by the previous worker.
+        history['start_block'] = int(cache.get('opening_block', min(
+            (log['block'] for log in history['logs']), default=history['next_block'])))
+    needs_older = bool(history) and start < history['start_block']
+    if getattr(rpc, 'has_transfer_index', False) is True and (needs_older or not history.get('source')):
         try:
             indexed_history(rpc, cache, address, start, latest, save)
         except IndexUnavailable as exc:
@@ -504,6 +585,15 @@ def wallet_history(rpc, cache, address, start, latest, save):
             # the verified fallback; don't pass the custom method to other RPCs.
             print(f'Transfer index unavailable; falling back to archive RPC: {exc}', flush=True)
             rpc.has_transfer_index = False
+    history = cache.get('history', {})
+    if history and start < history.get('start_block', start):
+        prefix = scan(rpc, cache, 'history_prefix', VVV,
+                      [[TRANSFER, topic_address(address)], [TRANSFER, None, topic_address(address)]],
+                      start, history['start_block'] - 1, save)
+        unique = {(log['tx'], log['index']): log for log in prefix + history['logs']}
+        history.update(start_block=start, logs=list(unique.values()))
+        del cache['history_prefix']
+        save()
     return scan(rpc, cache, 'history', VVV,
                 [[TRANSFER, topic_address(address)], [TRANSFER, None, topic_address(address)]],
                 start, latest, save)
@@ -528,7 +618,7 @@ def main():
         raise RuntimeError('Activity RPC is not Base mainnet')
     latest = max(0, number(rpc.call('eth_blockNumber', [])) - 64)
     now = rpc.timestamp(latest)
-    since = now - 90 * DAY
+    since, history_days = history_window(now, os.environ.get('VVV_ACTIVITY_HISTORY_DAYS', 'all'))
     try:
         ranking_start = rpc.first_block(now - 7 * DAY, latest)
         ranked_logs = scan(rpc, state, 'ranking', STAKING, [[INITIATED]], ranking_start, latest, save)
@@ -537,22 +627,26 @@ def main():
         save()
     previous = load_json(output_path, {})
     previous_wallets = {item['address']: item for item in previous.get('wallets', [])}
-    output = {'schema_version': 2, 'as_of': utc(now), 'ranking_days': 7, 'history_days': 90,
+    output = {'schema_version': 2, 'as_of': utc(now), 'ranking_days': 7, 'history_days': history_days,
+              'history_scope': 'all' if history_days is None else 'window',
               'ranking_complete': True, 'buckets': BUCKETS, 'wallets': [
                   {'address': address, 'initiated_amount': round(totals[address]['amount'] / UNIT, 8),
-                   'initiation_count': totals[address]['count'], 'history_start': utc(since),
+                   'initiation_count': totals[address]['count'], 'history_start': utc(since) if since else None,
+                   'history_days': history_days,
                    'status': 'indexing', 'progress': 0} for address in selected]}
     for item in output['wallets']:
         old = previous_wallets.get(item['address'], {})
         if previous.get('schema_version') == 2 and old.get('status') in ('complete', 'stale'):
-            for field in ('series', 'claims', 'claim_count', 'unreconciled_outflow', 'history_start'):
+            for field in ('series', 'claims', 'claim_count', 'claimed_total', 'unreconciled_outflow',
+                          'history_start', 'history_summary', 'recent_activity'):
                 if field in old:
                     item[field] = old[field]
             item['history_as_of'] = old.get('history_as_of', previous['as_of'])
+            item['history_days'] = old.get('history_days', previous.get('history_days', 90))
             item['status'] = 'stale'
     atomic_json(output_path, output)
     try:
-        history_start = rpc.first_block(since, latest) if selected else latest
+        history_start = rpc.first_block(since, latest) if selected and since else 0
     finally:
         save()
     for item in output['wallets']:
@@ -565,8 +659,11 @@ def main():
             moves = transfers(logs)
             opening_key = str(history_start)
             if cache.get('opening_block') != opening_key:
-                cache['opening'] = number(rpc.call('eth_call', [
-                    {'to': VVV, 'data': '0x70a08231' + topic_address(address)[2:]}, hex(max(0, history_start - 1))]))
+                if history_start == 0 and not rpc.is_contract(VVV, 0):
+                    cache['opening'] = 0  # The token did not exist at genesis.
+                else:
+                    cache['opening'] = number(rpc.call('eth_call', [
+                        {'to': VVV, 'data': '0x70a08231' + topic_address(address)[2:]}, hex(max(0, history_start - 1))]))
                 cache['opening_block'] = opening_key
             evidence = cache.setdefault('evidence', {})
             claims, sales, contracts, timestamps = {}, {}, set(), {}
@@ -580,7 +677,14 @@ def main():
                 rpc.check()
                 if tx not in evidence:
                     receipt = rpc.receipt(tx)
-                    transaction = rpc.transaction(tx)
+                    # Most funding and ordinary transfers need only receipt logs.
+                    # Fetch call data only for staking releases or candidate swaps.
+                    receipt_moves = transfers(receipt)
+                    needs_transaction = (any(move['address'] == VVV and move['from'] == STAKING
+                                             and move['to'] == address for move in receipt_moves)
+                        or any(log['topics'] and log['topics'][0] in (SWAP_V2, SWAP_V3, SWAP_SLIPSTREAM)
+                               for log in receipt))
+                    transaction = rpc.transaction(tx) if needs_transaction else {}
                     claim = verified_claim_amount(address, tx, receipt, transaction)
                     sold = verified_swap_amount(address, receipt, transaction, rpc.pool_tokens)
                     contract_dests = [move['to'] for move in tx_moves
@@ -591,12 +695,15 @@ def main():
                 claims[tx] = evidence[tx]['claim']
                 sales[tx] = evidence[tx]['sold']
                 contracts.update(evidence[tx]['contracts'])
-            result = analyze_wallet(address, logs, cache['opening'], claims, sales, contracts, timestamps, now, since)
+            context = wallet_context(address, logs, claims, sales, timestamps)
+            observed_since = min(timestamps.values(), default=now) if history_days is None else since
+            result = analyze_wallet(address, logs, cache['opening'], claims, sales, contracts, timestamps, now, observed_since)
             closing = number(rpc.call('eth_call', [
                 {'to': VVV, 'data': '0x70a08231' + topic_address(address)[2:]}, hex(latest)]))
             if result.pop('balance_wei') != closing or result['unreconciled_outflow'] > 0:
                 raise RuntimeError('Transfer replay does not reconcile with the on-chain VVV balance')
-            item.update(result, status='complete', progress=100, history_as_of=utc(now), history_start=utc(since))
+            item.update(result, **context, status='complete', progress=100, history_as_of=utc(now),
+                        history_start=utc(observed_since), history_days=history_days)
         except BudgetExpired:
             raise
         except Exception as exc:

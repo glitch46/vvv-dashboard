@@ -31,8 +31,8 @@ GitHub Actions runs every 4 hours and overwrites the JSON files.
 
 `scripts/unstaker_activity.py` independently generates `data/top_unstakers.json`
 (schema version 2). It ranks the **top seven wallets by unstake initiations over
-the rolling last seven days**, then follows each selected wallet's **90-day VVV
-history**. `data/unstaker_activity_state.json` checkpoints both log scanning and
+the rolling last seven days**, then follows each selected wallet's **all available
+VVV history**. `data/unstaker_activity_state.json` checkpoints both log scanning and
 transaction verification so the first backfill can span several refreshes.
 The activity step has its own 15-minute budget and does not block the existing
 stake, holder or sell-pressure charts. Incomplete history is shown as indexing,
@@ -48,6 +48,17 @@ a claim or sale. Receipts, page cursors and per-wallet progress are persisted;
 after backfill, only new blocks need scanning. If the indexed API is unavailable,
 the worker falls back to the resumable archive RPC path. Use
 `VVV_ACTIVITY_HISTORY_SOURCE=rpc` to force that fallback.
+Receipt-matched block timestamps from the indexed API avoid redundant archive
+block reads; a timestamp conflicting with an existing RPC read is rejected.
+
+The default history lookback is `VVV_ACTIVITY_HISTORY_DAYS=all`; numeric values
+such as `365` or `90` can be supplied for a bounded window. Expanding the window
+backfills the missing older history rather than reusing a recent-only cache as
+if it were complete. Each wallet carries its actual verified coverage while an
+older backfill is pending. The chart retains the last verified snapshot.
+Wallets with no verified claims still show a separate historical context and
+transaction table (staking deposits, other staking payments and transfers),
+without treating those activities as unstake sales.
 
 - Timing starts at an **actual verified unstake claim**, not cooldown expiry.
   Reward transfers from sVVV during an initiation/stake are not assumed claims.

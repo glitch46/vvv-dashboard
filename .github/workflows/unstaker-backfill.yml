@@ -6,7 +6,11 @@ on:
       budget_seconds:
         description: Maximum indexing time; progress is saved between runs
         required: false
-        default: '1800'
+        default: '3600'
+      history_days:
+        description: History lookback in days, or all for lifetime VVV activity
+        required: false
+        default: 'all'
 
 permissions:
   contents: write
@@ -18,7 +22,7 @@ concurrency:
 jobs:
   backfill:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -29,6 +33,7 @@ jobs:
           VENICE_API_KEY: ${{ secrets.VENICE_API_KEY }}
           ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
           VVV_ACTIVITY_BUDGET_SECONDS: ${{ inputs.budget_seconds }}
+          VVV_ACTIVITY_HISTORY_DAYS: ${{ inputs.history_days }}
         run: |
           python -u scripts/unstaker_activity.py || echo "::warning::Archive verification incomplete; checkpoint saved for the next run."
       - name: Commit verified activity and indexing checkpoint

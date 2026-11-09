@@ -205,10 +205,11 @@ class PublicationTests(unittest.TestCase):
         rpc.is_contract.return_value = False
         return rpc
 
-    def run_main(self, rpc, memory):
+    def run_main(self, rpc, memory, history_days='90'):
         def save(path, value):
             memory[path.name] = copy.deepcopy(value)
         with patch.object(activity, 'DATA', Path('/memory')), patch.object(activity, 'RPC', return_value=rpc), \
+                patch.dict(activity.os.environ, {'VVV_ACTIVITY_HISTORY_DAYS': history_days}), \
                 patch.object(activity, 'atomic_json', side_effect=save), \
                 patch.object(activity, 'load_json', side_effect=lambda path, default: copy.deepcopy(memory.get(path.name, default))):
             activity.main()
@@ -224,6 +225,28 @@ class PublicationTests(unittest.TestCase):
         self.assertEqual(wallet['series']['transferred'][1], 20)
         self.assertEqual(wallet['series']['held'][-1], 80)
         self.assertEqual(sum(wallet['series']['sold']), 0)
+
+    def test_lifetime_snapshot_starts_before_token_deployment(self):
+        memory = {}
+        rpc = self.fake_rpc()
+        self.run_main(rpc, memory, history_days='all')
+        output = memory['top_unstakers.json']
+        self.assertEqual(output['history_scope'], 'all')
+        self.assertIsNone(output['history_days'])
+        wallet = output['wallets'][0]
+        self.assertEqual(wallet['status'], 'complete')
+        self.assertIsNone(wallet['history_days'])
+        self.assertEqual(wallet['claimed_total'], 100)
+        self.assertEqual(wallet['history_summary']['transactions'], 2)
+        self.assertEqual(wallet['history_summary']['other_staking_payments'], 0)
+        rpc.is_contract.assert_any_call(activity.VVV, 0)
+        self.assertEqual(memory['unstaker_activity_state.json']['wallets'][WALLET]['history']['start_block'], 0)
+
+    def test_lifetime_window_configuration(self):
+        self.assertEqual(activity.history_window(1000 * activity.DAY, 'all'), (0, None))
+        self.assertEqual(activity.history_window(1000 * activity.DAY, '365'), (635 * activity.DAY, 365))
+        with self.assertRaises(ValueError):
+            activity.history_window(1000, '0')
 
     def test_failed_ranking_does_not_replace_last_output(self):
         previous = {'schema_version': 2, 'wallets': [{'address': WALLET, 'status': 'complete'}]}
@@ -338,6 +361,76 @@ class IndexedHistoryTests(unittest.TestCase):
         self.assertEqual(params[0]['toBlock'], hex(20))
         self.assertEqual(params[0]['toAddress'], WALLET)
         self.assertEqual(params[0]['pageKey'], 'page2')
+        self.assertTrue(params[0]['withMetadata'])
+
+    def test_indexed_block_metadata_is_receipt_matched_and_consistent(self):
+        rpc = Mock()
+        rpc.blocks = {}
+        entry = self.entry()
+        entry['metadata'] = {'blockTimestamp': '2025-02-01T00:00:00.000Z'}
+        rpc.asset_transfers.side_effect = [{'transfers': [entry]}, {'transfers': []}]
+        rpc.receipt.return_value = [transfer(WALLET, OTHER, 10, tx=self.TX, block=10)]
+        activity.indexed_history(rpc, {}, WALLET, 0, 20, Mock())
+        self.assertEqual(rpc.blocks['10'], 1738368000)
+        rpc.blocks['10'] = 0
+        rpc.asset_transfers.side_effect = [{'transfers': [entry]}]
+        with self.assertRaisesRegex(RuntimeError, 'timestamp disagrees'):
+            activity.indexed_history(rpc, {}, WALLET, 0, 20, Mock())
+
+    def test_widening_cached_window_requeries_older_indexed_history(self):
+        rpc = Mock()
+        rpc.has_transfer_index = True
+        rpc.chunk = 10000
+        old_tx = '0x' + 'b' * 64
+        old = transfer(WALLET, OTHER, 10, tx=old_tx, block=150)
+        older = transfer(WALLET, OTHER, 20, tx=self.TX, block=10)
+        cache = {'opening_block': '100', 'history': {'logs': [old], 'next_block': 201,
+                 'source': 'alchemy+rpc-receipts'}}
+        rpc.asset_transfers.side_effect = [
+            {'transfers': [self.entry(), self.entry(old_tx, 150)]}, {'transfers': []}]
+        rpc.receipt.side_effect = [[older], [old]]
+        result = activity.wallet_history(rpc, cache, WALLET, 0, 200, Mock())
+        self.assertEqual(rpc.asset_transfers.call_args_list[0].args, (WALLET, 0, 200, 'outgoing', None))
+        self.assertEqual({log['block'] for log in result}, {10, 150})
+        self.assertEqual(cache['history']['start_block'], 0)
+        rpc.logs.assert_not_called()
+
+    def test_archive_fallback_fetches_missing_prefix_before_using_cached_tail(self):
+        rpc = Mock()
+        rpc.has_transfer_index = False
+        rpc.chunk = 10000
+        old = transfer(WALLET, OTHER, 10, tx='0xold', block=150)
+        older = transfer(WALLET, OTHER, 20, tx=self.TX, block=10)
+        cache = {'history': {'start_block': 100, 'logs': [old], 'next_block': 201}}
+        rpc.logs.side_effect = [[older], []]
+        result = activity.wallet_history(rpc, cache, WALLET, 0, 200, Mock())
+        self.assertEqual({log['block'] for log in result}, {10, 150})
+        self.assertEqual(cache['history']['start_block'], 0)
+        self.assertNotIn('history_prefix', cache)
+        self.assertEqual(rpc.logs.call_args_list[0].args[-2:], (0, 99))
+
+
+class HistoricalContextTests(unittest.TestCase):
+    def test_rewards_stakes_and_transfers_remain_separate_from_claims(self):
+        logs = [transfer(activity.STAKING, WALLET, 10, tx='0xreward', block=1),
+                transfer(WALLET, activity.STAKING, 10, tx='0xstake', block=2),
+                transfer(WALLET, OTHER, 5, tx='0xmove', block=3)]
+        result = activity.wallet_context(WALLET, logs, {}, {}, {'1': 1000, '2': 2000, '3': 3000})
+        self.assertEqual(result['history_summary']['transactions'], 3)
+        self.assertEqual(result['history_summary']['staked_vvv'], 10)
+        self.assertEqual(result['history_summary']['other_staking_payments'], 10)
+        labels = {row['action'] for row in result['recent_activity']}
+        self.assertEqual(labels, {'Other staking payment', 'Staked VVV', 'Transferred VVV'})
+
+    def test_claim_totals_include_claims_older_than_truncated_recent_table(self):
+        logs = [transfer(activity.STAKING, WALLET, 1, tx=f'0xclaim{i}', block=i) for i in range(1, 62)]
+        result = activity.analyze_wallet(WALLET, logs, 0,
+            {f'0xclaim{i}': activity.UNIT for i in range(1, 62)}, {}, set(),
+            {str(i): i * 1000 for i in range(1, 62)}, 100000, 0)
+        self.assertEqual(result['claim_count'], 61)
+        self.assertEqual(len(result['claims']), 50)
+        self.assertEqual(result['claimed_total'], 61)
+        self.assertEqual(result['series']['held'][-1], 61)
 
 
 if __name__ == '__main__':

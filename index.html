@@ -299,15 +299,20 @@
     <div class="panel chart-wrap" id="topUnstakersWrap" style="margin-top:24px;">
       <div class="chart-title">Largest Unstakers Activity</div>
       <div class="unstaker-status" id="unstakerStatus" role="status" aria-live="polite">Loading the top seven unstakers from the last seven days…</div>
+      <div class="unstaker-status" id="unstakerContext"></div>
       <div class="sell-chart-box" id="unstakerChartBox">
         <div class="unstaker-placeholder" id="unstakerEmpty">Verified wallet history will appear here after indexing.</div>
         <canvas id="topUnstakersChart" hidden role="img" aria-label="Post-claim VVV activity by elapsed time for the selected wallet"></canvas>
       </div>
       <div class="unstaker-wallets" id="unstakerWallets" role="group" aria-label="Largest unstakers in the last seven days"></div>
       <div class="sell-datestrip-label" id="unstakerSummary"></div>
+      <details class="unstaker-method" id="unstakerWalletDetails" hidden>
+        <summary>Recent wallet transactions</summary>
+        <div class="unstaker-history" id="unstakerWalletHistory"></div>
+      </details>
       <details class="unstaker-method">
         <summary>How this activity is measured</summary>
-        <p>Wallets are ranked dynamically by VVV unstake initiations over the rolling last seven days. The chart follows verified claims made by the selected wallet in the last 90 days. Timing starts when VVV is actually claimed after cooldown, not when unstaking is initiated.</p>
+        <p>Wallets are ranked dynamically by VVV unstake initiations over the rolling last seven days. The chart follows verified claims across all available VVV history for the selected wallet. Each wallet shows its verified coverage; earlier coverage is retained while older history is being retrieved. Timing starts when VVV is actually claimed after cooldown, not when unstaking is initiated.</p>
         <p>Stacked bars distinguish verified swaps, transfers to other wallets, other contract transfers, re-staking, and the balance still held. A transfer or exchange deposit is not proof of a sale. Swap verification requires a supported pool Swap event, a traced VVV input and a non-VVV token output to the wallet in the same transaction. Unsupported swaps remain unverified transfers.</p>
         <p>VVV is fungible: claim attribution uses FIFO across the wallet’s full VVV balance, including unrelated deposits and its opening balance. “Still holding” means still in the original wallet; funds are not followed after a transfer. Staking reward payments without a verified unstake claim are excluded. Recent claims have had less time to be sold. Wallet links do not establish team or investor ownership.</p>
         <div class="unstaker-history" id="unstakerHistory"></div>
