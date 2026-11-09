@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "as_of": "2026-11-09T15:14:12Z",
+  "as_of": "2026-11-09T16:06:59Z",
   "ranking_days": 7,
   "history_days": 90,
   "ranking_complete": true,
@@ -17,10 +17,9 @@
       "address": "0xa87597a0aad36554a1dec8a09cc4724d99e4d2f8",
       "initiated_amount": 500000.0,
       "initiation_count": 1,
-      "history_start": "2026-08-11T15:14:12Z",
+      "history_start": "2026-08-11T16:06:59Z",
       "status": "complete",
       "progress": 100,
-      "history_source": "alchemy+rpc-receipts",
       "series": {
         "sold": [
           0.0,
@@ -65,18 +64,18 @@
       },
       "claims": [],
       "claim_count": 0,
-      "observed_days": 90.0,
       "unreconciled_outflow": 0.0,
-      "history_as_of": "2026-11-09T15:14:12Z"
+      "history_as_of": "2026-11-09T16:06:59Z",
+      "history_source": "alchemy+rpc-receipts",
+      "observed_days": 90.0
     },
     {
       "address": "0x021dcdeae23627d70ec710f793a0280d420d9c20",
       "initiated_amount": 100842.0,
       "initiation_count": 1,
-      "history_start": "2026-08-11T15:14:12Z",
+      "history_start": "2026-08-11T16:06:59Z",
       "status": "complete",
       "progress": 100,
-      "history_source": "alchemy+rpc-receipts",
       "series": {
         "sold": [
           0.0,
@@ -121,18 +120,18 @@
       },
       "claims": [],
       "claim_count": 0,
-      "observed_days": 90.0,
       "unreconciled_outflow": 0.0,
-      "history_as_of": "2026-11-09T15:14:12Z"
+      "history_as_of": "2026-11-09T16:06:59Z",
+      "history_source": "alchemy+rpc-receipts",
+      "observed_days": 90.0
     },
     {
       "address": "0x0792b96ab761071a9ff00913a41f2a599040e2ba",
       "initiated_amount": 25000.0,
       "initiation_count": 1,
-      "history_start": "2026-08-11T15:14:12Z",
+      "history_start": "2026-08-11T16:06:59Z",
       "status": "complete",
       "progress": 100,
-      "history_source": "alchemy+rpc-receipts",
       "series": {
         "sold": [
           0.0,
@@ -208,18 +207,18 @@
         }
       ],
       "claim_count": 3,
-      "observed_days": 90.0,
       "unreconciled_outflow": 0.0,
-      "history_as_of": "2026-11-09T15:14:12Z"
+      "history_as_of": "2026-11-09T16:06:59Z",
+      "history_source": "alchemy+rpc-receipts",
+      "observed_days": 90.0
     },
     {
       "address": "0x73756f71f69797997b0ca9f23f9ee127434954e1",
       "initiated_amount": 21029.41938185,
       "initiation_count": 1,
-      "history_start": "2026-08-11T15:14:12Z",
+      "history_start": "2026-08-11T16:06:59Z",
       "status": "complete",
       "progress": 100,
-      "history_source": "alchemy+rpc-receipts",
       "series": {
         "sold": [
           0.0,
@@ -264,18 +263,18 @@
       },
       "claims": [],
       "claim_count": 0,
-      "observed_days": 90.0,
       "unreconciled_outflow": 0.0,
-      "history_as_of": "2026-11-09T15:14:12Z"
+      "history_as_of": "2026-11-09T16:06:59Z",
+      "history_source": "alchemy+rpc-receipts",
+      "observed_days": 90.0
     },
     {
       "address": "0x8dac92aaad999a6181488b8546bbfb540eddc9c3",
       "initiated_amount": 20316.0,
       "initiation_count": 1,
-      "history_start": "2026-08-11T15:14:12Z",
+      "history_start": "2026-08-11T16:06:59Z",
       "status": "complete",
       "progress": 100,
-      "history_source": "alchemy+rpc-receipts",
       "series": {
         "sold": [
           0.0,
@@ -294,7 +293,7 @@
           0.0
         ],
         "other_transfer": [
-          1184.31072645,
+          1985.31072645,
           0.0,
           0.0,
           425.0,
@@ -315,7 +314,7 @@
           0.0,
           0.0,
           0.0,
-          1315.68927355
+          514.68927355
         ]
       },
       "claims": [
@@ -375,24 +374,24 @@
           "claimed": 1500.0,
           "sold": 0.0,
           "transferred": 0.0,
-          "other_transfer": 184.31072645,
+          "other_transfer": 985.31072645,
           "restaked": 0.0,
-          "held": 1315.68927355
+          "held": 514.68927355
         }
       ],
       "claim_count": 6,
-      "observed_days": 90.0,
       "unreconciled_outflow": 0.0,
-      "history_as_of": "2026-11-09T15:14:12Z"
+      "history_as_of": "2026-11-09T16:06:59Z",
+      "history_source": "alchemy+rpc-receipts",
+      "observed_days": 90.0
     },
     {
       "address": "0xe8d8bb57edf69e4daf806ba60bf2658c81eb91db",
       "initiated_amount": 15805.83638692,
       "initiation_count": 1,
-      "history_start": "2026-08-11T15:14:12Z",
+      "history_start": "2026-08-11T16:06:59Z",
       "status": "complete",
       "progress": 100,
-      "history_source": "alchemy+rpc-receipts",
       "series": {
         "sold": [
           0.0,
@@ -437,18 +436,18 @@
       },
       "claims": [],
       "claim_count": 0,
-      "observed_days": 90.0,
       "unreconciled_outflow": 0.0,
-      "history_as_of": "2026-11-09T15:14:12Z"
+      "history_as_of": "2026-11-09T16:06:59Z",
+      "history_source": "alchemy+rpc-receipts",
+      "observed_days": 90.0
     },
     {
       "address": "0x416301691d75f29ce8ea355246d3c87baa65d38b",
       "initiated_amount": 10000.0,
       "initiation_count": 1,
-      "history_start": "2026-08-11T15:14:12Z",
+      "history_start": "2026-08-11T16:06:59Z",
       "status": "complete",
       "progress": 100,
-      "history_source": "alchemy+rpc-receipts",
       "series": {
         "sold": [
           0.0,
@@ -493,9 +492,10 @@
       },
       "claims": [],
       "claim_count": 0,
-      "observed_days": 90.0,
       "unreconciled_outflow": 0.0,
-      "history_as_of": "2026-11-09T15:14:12Z"
+      "history_as_of": "2026-11-09T16:06:59Z",
+      "history_source": "alchemy+rpc-receipts",
+      "observed_days": 90.0
     }
   ]
 }
