@@ -258,7 +258,7 @@
     playsinline
     preload="metadata"
   >
-    <source src="Assets/Background.mp4" type="video/mp4" />
+    <source src="Assets/Background-keys.mp4" type="video/mp4" />
   </video>
   <div class="bg-overlay" aria-hidden="true"></div>
   <div class="container">
@@ -324,10 +324,6 @@
       <div class="panel chart-wrap"><div class="chart-title">How Long User-Held VVV Has Been Held</div><canvas id="holdAgeChart"></canvas></div>
       <div class="panel chart-wrap"><div class="chart-title">Unlocked VVV in Wallets — Sell Pressure</div><canvas id="circulationChart"></canvas></div>
     </div>
-    <div class="panel" id="holderNote" style="margin-top:24px; display:none;">
-      <span style="color: var(--muted); font-size: 14px; font-weight: 300;" id="holderNoteText"></span>
-    </div>
-
     <div class="panel" id="howToRead" style="margin-top:24px;">
       <strong>How to read this:</strong><br>
       • <strong>Staked</strong> = when a user deposits VVV into sVVV (tokens become locked)<br>
@@ -688,9 +684,6 @@
         holders = null;
       }
 
-      const holderNote = document.getElementById('holderNote');
-      const holderNoteText = document.getElementById('holderNoteText');
-
       if (holders && holders.backfill_complete !== false && holders.categories) {
         const cat = holders.categories || {};
         // Exchange balances fold into contract addresses (exchanges are contracts on-chain).
@@ -927,27 +920,9 @@
           document.getElementById('sellSourceChart').closest('.chart-wrap').style.display = 'none';
         }
 
-        // Note with context
-        const lpNames = Object.keys(holders.lp_pools || {}).slice(0, 6).join(', ');
-        holderNoteText.innerHTML =
-          `Categories: freely-circulating VVV (excludes staked, burned, and locked treasury/team). ` +
-          `LP pools include Aerodrome & Uniswap (e.g. ${lpNames || 'various pools'}). ` +
-          `Contract addresses are any non-pool contract detected on-chain (includes exchange hot wallets). ` +
-          `"Held" means the current balance has been sitting in the wallet without being transferred (FIFO age). ` +
-          `The sell-pressure chart shows VVV released to user wallets by finalizeUnstake (unlocked) that is still there, ` +
-          `bucketed by time since unlock — recently-unlocked VVV is the most likely to be sold. ` +
-          `The interactive 'Where Sell Pressure Comes From' chart stacks VVV sold by wallet type per ` +
-          `time-from-unlock-to-sale cohort, and hover over the last 14 days to inspect each day. ` +
-          `As of ${holders.as_of}.`;
-        holderNote.style.display = 'block';
-      } else if (holders && holders.backfill_complete === false) {
-        holderNoteText.textContent =
-          holders.message || 'Holder analysis is indexing full transfer history — please check back after the next refresh.';
-        holderNote.style.display = 'block';
       } else {
-        holderNoteText.textContent =
-          'Holder distribution is temporarily unavailable. It will appear once the on-chain indexer has caught up.';
-        holderNote.style.display = 'block';
+        document.getElementById('holderDoughnutChart').closest('.holder-grid').style.display = 'none';
+        document.getElementById('sellSourceWrap').style.display = 'none';
       }
 
     })();
