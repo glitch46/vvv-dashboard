@@ -76,6 +76,28 @@ def save_state(path, state):
     os.replace(temporary, path)
 
 
+def positioning(bias):
+    """Mirror the dashboard's bull meter, which reads the cohort's perp bias.
+
+    Thresholds and labels come from the app's BullMeter component; the emoji is
+    ours, chosen to match the same seven states.
+    """
+    bias = bias or 0
+    if -0.04 <= bias < 0.04:
+        return 'Indecisive', '⚖️'
+    if bias >= 0.75:
+        return 'Very Bullish', '🐂'
+    if bias >= 0.35:
+        return 'Bullish', '📈'
+    if bias >= 0.04:
+        return 'Slightly Bullish', '↗️'
+    if bias >= -0.35:
+        return 'Slightly Bearish', '↘️'
+    if bias >= -0.75:
+        return 'Bearish', '📉'
+    return 'Very Bearish', '🐻'
+
+
 def compact(value):
     sign = '-' if value < 0 else ''
     magnitude = abs(value)
@@ -189,7 +211,12 @@ def build_message(segments, status, now):
         if extra.get('in_position') and extra.get('in_profit') is not None:
             share = round(100 * extra['in_profit'] / extra['in_position'])
             lines.append(f'{share}% of them in profit')
-        lines.append(f'{money(item["positionValue"])} open · {long_share:.0f}% long')
+        lines.append(f'{money(item["positionValue"])} open')
+        if item.get('positionValue'):
+            label, emoji = positioning(item.get('perpBias'))
+            lines.append(f'{emoji} {label} · {long_share:.0f}% long')
+        else:
+            lines.append('⏸️ No position')
         lines.append('')
     lines.extend(['coinmarketman.com/hypertracker'])
     return '\n'.join(line for line in lines if line is not None)
