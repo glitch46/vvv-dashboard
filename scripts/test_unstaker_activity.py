@@ -139,14 +139,18 @@ class AttributionTests(unittest.TestCase):
 
 class IndexingTests(unittest.TestCase):
     def test_dynamic_top_seven_excludes_older_initiations(self):
-        now = 10 * activity.DAY
+        now = 100 * activity.DAY
         logs = [{'address': activity.STAKING, 'block': index, 'topics': [activity.INITIATED,
                  activity.topic_address('0x' + f'{index:040x}')], 'data': abi(index * activity.UNIT)}
                 for index in range(1, 10)]
-        selected, totals = activity.rank_wallets(logs, lambda block: now if block != 9 else now - 7 * activity.DAY - 1, now)
+        timestamps = {9: now - 30 * activity.DAY - 1, 8: now - 20 * activity.DAY,
+                      7: now - 30 * activity.DAY, 6: now + 1}
+        selected, totals = activity.rank_wallets(logs, lambda block: timestamps.get(block, now), now)
         self.assertEqual(len(selected), 7)
         self.assertTrue(selected[0].endswith('8'))
         self.assertNotIn('0x' + f'{9:040x}', totals)
+        self.assertNotIn('0x' + f'{6:040x}', totals)
+        self.assertIn('0x' + f'{7:040x}', totals)  # Exact 30-day boundary is included.
 
     def test_exact_ranking_block_boundaries_need_no_per_event_rpc(self):
         log = {'address': activity.STAKING, 'block': 100,
@@ -180,6 +184,35 @@ class IndexingTests(unittest.TestCase):
         self.assertEqual(state['history']['next_block'], 10)
         self.assertEqual(state['history']['logs'], [])
         save.assert_not_called()
+
+    def test_ranking_window_expansion_resumes_before_publishing(self):
+        def rank_log(block):
+            return {'address': activity.STAKING, 'block': block, 'index': 1, 'tx': f'0x{block}',
+                    'topics': [activity.INITIATED, activity.topic_address(WALLET)], 'data': abi(activity.UNIT)}
+
+        existing = [rank_log(85), rank_log(100)]
+        state = {'ranking': {'start_block': 80, 'next_block': 101, 'logs': copy.deepcopy(existing)}}
+        rpc = Mock(chunk=10)
+        def fetch(address, topics, start, end):
+            if start == 60:
+                raise activity.BudgetExpired('resume next refresh')
+            return [rank_log(55)] if start == 50 else []
+        rpc.logs.side_effect = fetch
+        with self.assertRaises(activity.BudgetExpired):
+            activity.ranking_history(rpc, state, 50, 110, Mock())
+        self.assertEqual(state['ranking']['start_block'], 80)
+        self.assertEqual(state['ranking']['logs'], existing)
+        self.assertEqual(state['ranking_prefix']['next_block'], 60)
+
+        rpc.logs.reset_mock()
+        rpc.logs.side_effect = lambda address, topics, start, end: (
+            [rank_log(65)] if start == 60 else [rank_log(105)] if start == 101 else [])
+        result = activity.ranking_history(rpc, state, 51, 110, Mock())
+        self.assertEqual([call.args[2] for call in rpc.logs.call_args_list], [60, 70, 101])
+        self.assertEqual(sorted(log['block'] for log in result), [55, 65, 85, 100, 105])
+        self.assertEqual(state['ranking']['start_block'], 51)
+        self.assertEqual(state['ranking']['next_block'], 111)
+        self.assertNotIn('ranking_prefix', state)
 
 
 class PublicationTests(unittest.TestCase):
@@ -216,9 +249,11 @@ class PublicationTests(unittest.TestCase):
 
     def test_complete_snapshot_with_reconciled_history(self):
         memory = {}
-        self.run_main(self.fake_rpc(), memory)
+        rpc = self.fake_rpc()
+        self.run_main(rpc, memory)
         output = memory['top_unstakers.json']
-        self.assertEqual(output['ranking_days'], 7)
+        self.assertEqual(output['ranking_days'], 30)
+        rpc.first_block.assert_any_call(70 * activity.DAY, 1000)
         self.assertEqual(output['history_days'], 90)
         wallet = output['wallets'][0]
         self.assertEqual(wallet['status'], 'complete')

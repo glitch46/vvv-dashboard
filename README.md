@@ -30,10 +30,13 @@ GitHub Actions runs every 4 hours and overwrites the JSON files.
 ### Largest Unstakers Activity
 
 `scripts/unstaker_activity.py` independently generates `data/top_unstakers.json`
-(schema version 2). It ranks the **top seven wallets by unstake initiations over
-the rolling last seven days**, then follows each selected wallet's **all available
+(schema version 2). Every scheduled refresh ranks the **top seven wallets by total
+unstake initiations over the rolling last 30 days**, then follows each selected wallet's **all available
 VVV history**. `data/unstaker_activity_state.json` checkpoints both log scanning and
-transaction verification so the first backfill can span several refreshes.
+transaction verification so the first backfill can span several refreshes. When
+the ranking window is expanded, older initiation events are backfilled before a
+complete 30-day ranking is published; the previous ranking remains labeled with
+its actual window until then.
 The activity step has its own 15-minute budget and does not block the existing
 stake, holder or sell-pressure charts. Incomplete history is shown as indexing,
 not as zero sales. Last verified output is retained if ranking fails.

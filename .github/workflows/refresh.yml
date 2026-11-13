@@ -35,7 +35,7 @@ jobs:
           VVV_LOCKED_ADDRESSES: ${{ secrets.VVV_LOCKED_ADDRESSES }}
           VVV_BURN_ADDRESSES: ${{ secrets.VVV_BURN_ADDRESSES }}
         run: python scripts/refresh.py
-      - name: Build largest unstakers activity (7-day ranking, all available history)
+      - name: Build largest unstakers activity (30-day ranking, all available history)
         env:
           VENICE_API_KEY: ${{ secrets.VENICE_API_KEY }}
           ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}

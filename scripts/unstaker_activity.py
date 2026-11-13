@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Top seven initiators (rolling 7d), and their verified post-claim activity.
+"""Top seven initiators (rolling 30d), and their verified post-claim activity.
 
 Independent, resumable indexer: never imports refresh.py (which runs on import).
 Amounts stay in wei until publication. FIFO is an attribution convention, not
@@ -27,6 +27,7 @@ SWAP_SLIPSTREAM = '0x19b47279256b2a23a1665c810c8d55a1758940ee09377d4f8d26497a357
 BUCKETS = ['Within 24h', '24–48h', '48–72h', '3–7 days', 'After 7 days', 'Still holding']
 KINDS = ['sold', 'transferred', 'other_transfer', 'restaked', 'held']
 DAY = 86400
+RANKING_DAYS = 30
 UNIT = 10 ** 18
 DATA = Path(__file__).resolve().parents[1] / 'data'
 
@@ -354,12 +355,12 @@ def rank_wallets(logs, timestamp, now, block_range=None):
                 or log['topics'][0] != INITIATED or len(words(log['data'])) != 1):
             continue
         if block_range is not None:
-            # The first block was binary-searched at exactly now-7d, and the
+            # The first block was binary-searched at the rolling-window cutoff, and the
             # last block is the pinned snapshot. No per-event timestamp RPCs
             # are needed just to rank events inside those exact boundaries.
             if not block_range[0] <= log['block'] <= block_range[1]:
                 continue
-        elif not now - 7 * DAY <= timestamp(log['block']) <= now:
+        elif not now - RANKING_DAYS * DAY <= timestamp(log['block']) <= now:
             continue
         address = '0x' + log['topics'][1][-40:]
         totals[address]['amount'] += number(log['data'])
@@ -516,6 +517,32 @@ def scan(rpc, state, key, address, topics_list, start, latest, save):
     return section['logs']
 
 
+def ranking_history(rpc, state, start, latest, save):
+    """Expand an existing rolling cache before using it for a wider ranking.
+
+    The older prefix has its own checkpoint so an interrupted backfill never
+    publishes a partial 30-day ranking or discards the existing seven-day data.
+    """
+    ranking = state.get('ranking', {})
+    if ranking and 'start_block' not in ranking:
+        # Without a coverage boundary the cache cannot establish a full window.
+        del state['ranking']
+        state.pop('ranking_prefix', None)
+        ranking = {}
+    if ranking and start < ranking['start_block']:
+        prefix = scan(rpc, state, 'ranking_prefix', STAKING, [[INITIATED]],
+                      start, ranking['start_block'] - 1, save)
+        unique = {(log['tx'], log['index']): log for log in prefix + ranking['logs']}
+        ranking.update(start_block=start, logs=list(unique.values()))
+        del state['ranking_prefix']
+        save()
+    elif 'ranking_prefix' in state:
+        # The rolling cutoff can advance beyond an interrupted prefix.
+        del state['ranking_prefix']
+        save()
+    return scan(rpc, state, 'ranking', STAKING, [[INITIATED]], start, latest, save)
+
+
 def indexed_history(rpc, cache, address, start, latest, save):
     """Discover txs through a paginated index; replay only exact receipt logs.
 
@@ -630,14 +657,14 @@ def main():
     now = rpc.timestamp(latest)
     since, history_days = history_window(now, os.environ.get('VVV_ACTIVITY_HISTORY_DAYS', 'all'))
     try:
-        ranking_start = rpc.first_block(now - 7 * DAY, latest)
-        ranked_logs = scan(rpc, state, 'ranking', STAKING, [[INITIATED]], ranking_start, latest, save)
+        ranking_start = rpc.first_block(now - RANKING_DAYS * DAY, latest)
+        ranked_logs = ranking_history(rpc, state, ranking_start, latest, save)
         selected, totals = rank_wallets(ranked_logs, rpc.timestamp, now, (ranking_start, latest))
     finally:
         save()
     previous = load_json(output_path, {})
     previous_wallets = {item['address']: item for item in previous.get('wallets', [])}
-    output = {'schema_version': 2, 'as_of': utc(now), 'ranking_days': 7, 'history_days': history_days,
+    output = {'schema_version': 2, 'as_of': utc(now), 'ranking_days': RANKING_DAYS, 'history_days': history_days,
               'history_scope': 'all' if history_days is None else 'window',
               'ranking_complete': True, 'buckets': BUCKETS, 'wallets': [
                   {'address': address, 'initiated_amount': round(totals[address]['amount'] / UNIT, 8),

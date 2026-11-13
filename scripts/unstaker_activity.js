@@ -9,6 +9,8 @@
   const context = document.getElementById('unstakerContext');
   const transactionHistory = document.getElementById('unstakerWalletHistory');
   const transactionDetails = document.getElementById('unstakerWalletDetails');
+  const rankingDaysLabel = document.getElementById('unstakerRankingDays');
+  const targetRankingDays = 30;
   const format = value => Number(value).toLocaleString('en-US', { maximumFractionDigits: 2 });
   const short = address => `${address.slice(0, 6)}…${address.slice(-4)}`;
   const addressPattern = /^0x[0-9a-f]{40}$/i;
@@ -110,7 +112,8 @@
     const refreshed = new Date(data.as_of);
     const stale = !Number.isNaN(refreshed.getTime()) && Date.now() - refreshed.getTime() > 12 * 3600000;
     status.append(document.createTextNode(
-      ` · ${format(wallet.initiated_amount)} VVV initiated in the last 7 days · Updated ${data.as_of}${stale ? ' (refresh overdue)' : ''}`));
+      ` · ${format(wallet.initiated_amount)} VVV initiated in the last ${data.ranking_days} days · Updated ${data.as_of}${stale ? ' (refresh overdue)' : ''}` +
+      (data.ranking_days !== targetRankingDays ? ` · ${targetRankingDays}-day ranking is awaiting its first refresh` : '')));
     history.replaceChildren();
     showContext(wallet);
     if (chart) { chart.destroy(); chart = null; }
@@ -181,13 +184,17 @@
     const response = await fetch('data/top_unstakers.json', { cache: 'no-cache' });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     data = await response.json();
-    if (data.schema_version !== 2 || !data.ranking_complete) {
+    if (data.schema_version !== 2 || !data.ranking_complete ||
+        !Number.isSafeInteger(data.ranking_days) || data.ranking_days < 1) {
       status.textContent = 'The wallet ranking and historical activity are awaiting their first verified refresh.';
       return;
     }
+    rankingDaysLabel.textContent = data.ranking_days;
+    strip.setAttribute('aria-label', `Largest unstakers in the last ${data.ranking_days} days`);
     const wallets = (data.wallets || []).filter(wallet => addressPattern.test(wallet.address)).slice(0, 7);
     if (!wallets.length) {
-      status.textContent = `No unstake initiations recorded in the rolling last seven days. Updated ${data.as_of}.`;
+      status.textContent = `No unstake initiations recorded in the rolling last ${data.ranking_days} days. Updated ${data.as_of}.` +
+        (data.ranking_days !== targetRankingDays ? ` The ${targetRankingDays}-day ranking is awaiting its first refresh.` : '');
       return;
     }
     wallets.forEach(wallet => {
@@ -195,7 +202,7 @@
       button.type = 'button';
       button.className = 'sell-date';
       button.dataset.address = wallet.address;
-      button.title = `${wallet.address} — ${format(wallet.initiated_amount)} VVV initiated in 7 days`;
+      button.title = `${wallet.address} — ${format(wallet.initiated_amount)} VVV initiated in ${data.ranking_days} days`;
       button.setAttribute('aria-label', button.title);
       button.setAttribute('aria-pressed', 'false');
       button.append(document.createTextNode(short(wallet.address)));
