@@ -1,0 +1,52 @@
+name: BTC VWAP alert
+
+on:
+  schedule:
+    # GitHub's shortest interval; runs can be delayed by a few minutes.
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Print the alert instead of sending it'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: btc-vwap
+  cancel-in-progress: false
+
+jobs:
+  alert:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Restore alert state
+        uses: actions/cache/restore@v4
+        with:
+          path: .alert-state
+          key: btc-state-${{ github.run_id }}
+          restore-keys: btc-state-
+      - name: Check BTC vs weekly VWAP
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          mkdir -p .alert-state
+          args=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            args="--dry-run"
+          fi
+          python scripts/btc_vwap_alert.py $args
+      - name: Save alert state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .alert-state
+          key: btc-state-${{ github.run_id }}
