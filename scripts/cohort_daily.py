@@ -20,6 +20,7 @@ Environment:
 import argparse
 import json
 import os
+import sys
 import time
 import urllib.request
 from datetime import datetime, timedelta, timezone
@@ -106,7 +107,7 @@ def pnl_range(criteria):
     if low is not None and high is not None:
         return f'{compact(low)} to {compact(high)}'
     if low is not None:
-        return f'>= {compact(low)}'
+        return f'≥ {compact(low)}'
     if high is not None:
         return f'< {compact(high)}'
     return ''
@@ -143,6 +144,7 @@ def telegram_send(token, chat_id, text):
 
 
 def build_message(segments, status, now):
+    """One short line per fact, so nothing wraps on a phone screen."""
     pnl = sorted((item for item in segments
                   if item['segment']['category'] == 'pnl'), key=lambda item: item['segmentId'])
     if not pnl:
@@ -154,14 +156,23 @@ def build_message(segments, status, now):
     profit = sum(item['countTraders'] for item in pnl
                  if (item['segment']['criteria'].get('minPnl') is not None
                      and item['segment']['criteria']['minPnl'] >= 0))
+    open_value = sum(item['positionValue'] for item in pnl)
+    equity = sum(item.get('perpMarginEquity') or item.get('perpEquity') or 0 for item in pnl)
     # %-d is not portable to Windows, so assemble the day separately.
-    stamp = now.strftime('%a, %b ') + str(now.day) + now.strftime(' %Y %H:%M %Z')
+    stamp = now.strftime('%a, %b ') + str(now.day) + now.strftime(', %Y %H:%M %Z')
     updated = (status.get('lastUpdate') or '')[:16].replace('T', ' ')
-    lines = ['HyperTracker - wallet cohorts by all-time perp PNL',
-             f'{stamp}' + (f' - feed {updated} UTC' if updated else ''),
+    lines = ['HyperTracker Cohorts',
+             'All-time perp PnL',
+             stamp,
+             f'Feed {updated} UTC' if updated else '',
              '',
-             f'{wallets:,} wallets with perp PNL history - {in_position:,} with open positions',
-             f'In profit: {profit:,} - In loss: {wallets - profit:,}']
+             f'{wallets:,} wallets with perp PnL',
+             f'{in_position:,} in open positions',
+             f'{profit:,} in profit',
+             f'{wallets - profit:,} in loss',
+             f'{money(open_value)} open',
+             f'{money(equity)} equity',
+             '']
     for item in pnl:
         segment = item['segment']
         extra = segment_extra(item['segmentId'])
@@ -171,21 +182,22 @@ def build_message(segments, status, now):
         wallet_line = f'{item["countTraders"]:,} wallets'
         if extra.get('change') is not None:
             wallet_line += f' ({extra["change"]:+,} in 24h)'
-        wallet_line += f', {item["countTradersInPosition"]:,} in position'
+        lines.append(f'{segment.get("emoji") or ""} {segment["name"]}'.strip())
+        lines.append(f'PnL range: {pnl_range(segment["criteria"])}')
+        lines.append(wallet_line)
+        lines.append(f'{item["countTradersInPosition"]:,} with open positions')
         if extra.get('in_position') and extra.get('in_profit') is not None:
-            wallet_line += f', {round(100 * extra["in_profit"] / extra["in_position"])}% in profit'
-        lines.extend([
-            '',
-            f'{segment["name"]}: {pnl_range(segment["criteria"])}',
-            f'  {wallet_line}',
-            f'  {money(item["positionValue"])} open - '
-            f'{money(item.get("perpMarginEquity") or item.get("perpEquity") or 0)} equity - '
-            f'{long_share:.0f}% long'])
-    lines.extend(['', 'app.coinmarketman.com/hypertracker'])
-    return '\n'.join(lines)
+            share = round(100 * extra['in_profit'] / extra['in_position'])
+            lines.append(f'{share}% of them in profit')
+        lines.append(f'{money(item["positionValue"])} open · {long_share:.0f}% long')
+        lines.append('')
+    lines.extend(['coinmarketman.com/hypertracker'])
+    return '\n'.join(line for line in lines if line is not None)
 
 
 def main():
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8')
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--dry-run', action='store_true')
     parser.add_argument('--force', action='store_true')
