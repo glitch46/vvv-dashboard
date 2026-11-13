@@ -1,0 +1,61 @@
+name: Daily cohort digest
+
+on:
+  schedule:
+    # 08:45 America/Chicago is 13:45 UTC in CDT and 14:45 UTC in CST. Both run
+    # daily; the script sends only inside the local window and once per date.
+    - cron: '45 13 * * *'
+    - cron: '45 14 * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Send now, ignoring the 08:45 local-time window'
+        type: boolean
+        default: true
+      dry_run:
+        description: 'Print the message instead of sending it'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cohort-daily
+  cancel-in-progress: false
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Restore digest state
+        uses: actions/cache/restore@v4
+        with:
+          path: .alert-state
+          key: cohort-state-${{ github.run_id }}
+          restore-keys: cohort-state-
+      - name: Send digest
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          mkdir -p .alert-state
+          args=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force }}" = "true" ]; then
+            args="$args --force"
+          fi
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            args="$args --dry-run"
+          fi
+          python scripts/cohort_daily.py $args
+      - name: Save digest state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .alert-state
+          key: cohort-state-${{ github.run_id }}
