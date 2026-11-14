@@ -89,6 +89,78 @@ they start so a preceding backfill's progress is not lost.
 Run the isolated evidence/accounting tests with:
 `python -m unittest discover -s scripts -p "test_unstaker_activity.py" -v`.
 
+## Primary-position Telegram investigations
+
+`.github/workflows/unstaker-alert.yml` checks the primary VVV position every
+**10 minutes** (GitHub may delay scheduled runs). It invokes
+`scripts/notify_unstaker.py`, with investigation/tracking in
+`scripts/position_monitor.py`. It reuses the existing `TELEGRAM_BOT_TOKEN`,
+`TELEGRAM_CHAT_ID`, `ALCHEMY_API_KEY` and `VENICE_API_KEY` repository secrets.
+
+`data/position_watch.json` pins these two roots independently of dashboard rankings:
+
+- Original large unstaker: `0xa87597a0aad36554a1dec8a09cc4724d99e4d2f8`
+- 400,000 VVV recipient: `0x1e49568d70acbcad02a08c14ff3abf92efe8aae4`
+
+Rules:
+
+- A movement alert requires **at least 500 VVV OR an estimated $10,000**. The
+  comparison is inclusive and uses the largest qualifying wallet movement in
+  one transaction, not a sum across separate transactions. Incoming/outgoing
+  legs and staking events are not added together to inflate the threshold.
+  Approvals, price changes alone, zero-value token events and smaller movements
+  do not fire movement alerts.
+- USD value is a timestamped observation-time estimate, **not execution
+  proceeds**. The highest-liquidity qualifying Base VVV market on DexScreener
+  supplies the quote (minimum $100,000 pool liquidity). Cached quotes expire
+  after 30 minutes. Token-based alerts continue during price outages; events
+  without a quote remain available for valuation retry.
+- Follow **two onward wallet transfers from either pinned root**. The roots'
+  mutual transfer consumes no onward hop. Recipient accounting uses FIFO over
+  all VVV, including opening/unrelated balances, and follows only the attributed
+  part of an outflow. Reusing an address does not reset the hop count. Contracts,
+  pools, staking/token contracts and burns are terminal endpoints; cross-chain
+  continuation is not indexed. A link is fund-flow evidence, not ownership.
+- The initial investigation starts at the verified 500,000 VVV initiation in
+  block `53989536`; the recipient's own history starts at its first linked receipt
+  in block `57150775`. Four seed transactions are reverified against live receipts.
+  Recent root activity and newly discovered recipients are checked first; old
+  history is resumable and time-boxed. Partial history is explicitly labeled.
+  Completed wallet histories must reconcile opening balance + transfers against
+  their pinned on-chain closing balance; mismatches trigger a rescan.
+- One daily Telegram investigation is queued at the first successful poll after
+  **12:00 UTC**, plus an initial coverage report and a completed baseline report.
+  Reports include below-threshold VVV activity, staking, claims, rewards,
+  approvals, transaction evidence, balances, pending unstake/cooldown and coverage.
+  Alchemy additionally discovers other ERC20/NFT and external/internal ETH
+  activity. Other-asset indexing has separate retry cursors and never silently
+  claims complete coverage after an outage. Arbitrary calls without indexed
+  transfers may not be discoverable. Only receipt-verified supported swaps are
+  called sales; indexed labels are context only.
+- `.alert-state/position.json` holds receipt history, separate live/backfill
+  cursors, attribution openings, daily markers and a paginated Telegram outbox.
+  Versioned Actions caches restore/save it, including on failure. The old
+  `.alert-state/state.json` alert checkpoint is independent. An alert crossing
+  both roots is queued once. Pages beyond the delivery limit stay queued;
+  failed sends are retried. Delivery is at-least-once: a crash after Telegram
+  accepts a page but before its checkpoint is saved can repeat that page.
+  Cache loss starts a labeled new baseline rather than trusting an absent cursor.
+
+Verification:
+
+```text
+python -m unittest discover -s scripts -p "test_position_monitor.py" -v
+python scripts/notify_unstaker.py --dry-run --test
+python scripts/notify_unstaker.py --dry-run
+```
+
+`--dry-run` makes no state writes and sends no Telegram messages. `--test`
+without `--dry-run` sends a configuration test to the existing destination.
+`--config` and `--state` allow isolated configurations/checkpoints.
+`VVV_ALERT_CONFIRMATIONS` defaults to a 64-block head lag (not L1 finality);
+`VVV_ALERT_BUDGET_SECONDS` defaults to 420 seconds. Historical backfill gets
+at most 120 seconds per run so it does not displace live checks and reporting.
+
 ## Supply data (Venice Crypto RPC on Base)
 
 The supply pie chart uses Venice Crypto RPC against `base-mainnet`.

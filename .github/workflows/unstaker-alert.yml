@@ -19,6 +19,9 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Queued runs start from the latest monitor code/configuration.
+          ref: master
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -26,14 +29,19 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: .alert-state
-          key: alert-state-${{ github.run_id }}
-          restore-keys: alert-state-
+          key: position-state-v2-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: position-state-v2-
+      - name: Verify position monitoring rules
+        run: python -m unittest discover -s scripts -p "test_position_monitor.py" -v
       - name: Poll and alert
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           VENICE_API_KEY: ${{ secrets.VENICE_API_KEY }}
           ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
+          VVV_ACTIVITY_RPC_PROVIDER: alchemy
+          VVV_ACTIVITY_LOG_CHUNK: '40000'
+          VVV_ALERT_BUDGET_SECONDS: '420'
         run: |
           mkdir -p .alert-state
           python scripts/notify_unstaker.py
@@ -42,4 +50,4 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: .alert-state
-          key: alert-state-${{ github.run_id }}
+          key: position-state-v2-${{ github.run_id }}-${{ github.run_attempt }}

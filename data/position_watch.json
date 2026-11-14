@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "name": "Primary VVV unstake position",
+  "start_block": 53989536,
+  "roots": {
+    "0xa87597a0aad36554a1dec8a09cc4724d99e4d2f8": "Original large unstaker",
+    "0x1e49568d70acbcad02a08c14ff3abf92efe8aae4": "400,000 VVV recipient"
+  },
+  "root_start_blocks": {
+    "0x1e49568d70acbcad02a08c14ff3abf92efe8aae4": 57150775
+  },
+  "alert_vvv": "500",
+  "alert_usd": "10000",
+  "max_hops": 2,
+  "daily_hour_utc": 12,
+  "seed_transactions": [
+    "0xea3c372c5a650086eed2b709d179c16b31bcaf88e0bf194c1ebf21f1dab72836",
+    "0x1928f8e8e199ad497388bca8320457f77cf4dc2f7e1ca2fc136156809225ce75",
+    "0x6251ecdabfb68ddf4dcc0ed54385109c4895c16b1b3c3f913b6be14a708f9ffe",
+    "0x476df39719ef22e1a2c1495c31a32affb66b063836f533061219dd1e26d91729"
+  ]
+}
