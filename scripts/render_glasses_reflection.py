@@ -108,14 +108,14 @@ def key_texture():
     size = 512
     key = np.zeros((size, size), np.uint8)
     # Draw one key vertically, then reflect and rotate it into a crossed pair.
-    cv2.ellipse(key, (256, 344), (29, 35), 0, 0, 360, 255, 11, cv2.LINE_AA)
-    cv2.circle(key, (222, 344), 13, 255, 9, cv2.LINE_AA)
-    cv2.circle(key, (290, 344), 13, 255, 9, cv2.LINE_AA)
-    cv2.line(key, (256, 307), (256, 111), 255, 14, cv2.LINE_AA)
-    cv2.line(key, (256, 119), (294, 119), 255, 14, cv2.LINE_AA)
-    cv2.line(key, (287, 119), (287, 140), 255, 12, cv2.LINE_AA)
-    cv2.line(key, (256, 151), (284, 151), 255, 12, cv2.LINE_AA)
-    cv2.line(key, (278, 151), (278, 166), 255, 10, cv2.LINE_AA)
+    cv2.ellipse(key, (256, 344), (29, 35), 0, 0, 360, 255, 14, cv2.LINE_AA)
+    cv2.circle(key, (222, 344), 13, 255, 11, cv2.LINE_AA)
+    cv2.circle(key, (290, 344), 13, 255, 11, cv2.LINE_AA)
+    cv2.line(key, (256, 307), (256, 111), 255, 18, cv2.LINE_AA)
+    cv2.line(key, (256, 119), (294, 119), 255, 18, cv2.LINE_AA)
+    cv2.line(key, (287, 119), (287, 140), 255, 15, cv2.LINE_AA)
+    cv2.line(key, (256, 151), (284, 151), 255, 15, cv2.LINE_AA)
+    cv2.line(key, (278, 151), (278, 166), 255, 13, cv2.LINE_AA)
     result = np.zeros_like(key)
     for angle in (-55, 55):
         matrix = cv2.getRotationMatrix2D((256, 256), angle, 0.72)
@@ -189,11 +189,11 @@ def composite_lens(frame, lens, yaw, texture, side):
     ty = 256 + 164*(v*radial + 0.025*yaw*u)
     keys = cv2.remap(texture, tx.astype(np.float32), ty.astype(np.float32),
                      cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
-    keys = cv2.GaussianBlur(keys, (0, 0), 0.65)
-    reflection = keys*(0.28 + 0.07*np.cos(yaw))*(1 - 0.35*edge)*illumination
+    keys = cv2.GaussianBlur(keys, (0, 0), 0.40)
+    reflection = keys*(0.58 + 0.12*np.cos(yaw))*(1 - 0.35*edge)*illumination
     # Screen blending retains the underlying glass shading instead of laying
-    # opaque white lettering over it. Warm reflected light is intentionally dim.
-    reflected_light = np.array([50,130,220], dtype=np.float32)
+    # opaque lettering over it. Pale gold separates the keys from the red glass.
+    reflected_light = np.array([125,195,255], dtype=np.float32)
     glass += (255-glass)*(reflected_light/255)*reflection[..., None]
 
     top = np.clip((-v + 0.08)/0.7, 0, 1)
