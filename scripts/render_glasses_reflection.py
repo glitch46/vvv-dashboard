@@ -3,8 +3,8 @@
 Requires numpy, opencv-python and ffmpeg. Run from the repository root:
     python scripts/render_glasses_reflection.py --ffmpeg ffmpeg --output Assets/Background-keys.mp4
 
-The lens tracks are hand-fitted to the 24 fps source. Coordinates describe the
-inside of the original metal rims, so the original frames and arms stay visible.
+The rotoscoped lens outlines are fitted to the 24 fps source. Reflections feather
+inwards from those outlines, preserving the metal rims, nose and cheek lighting.
 """
 
 import argparse
@@ -16,44 +16,52 @@ import numpy as np
 
 
 SOURCE = Path('Assets/Background.mp4')
-# frame, left lens (center x/y, half width/height), right lens, approximate yaw
+# Frame, eight clockwise contour landmarks per lens (starting at the top), yaw.
+# These aviator outlines deliberately follow the asymmetric nasal edges rather
+# than using ellipses, which painted over the bridge and nose in the old render.
+# Collapsed contours mark lenses whose reflective fronts are hidden.
 TRACK = [
-    (0,   (560, 219, 29, 31), (639, 218, 33, 32), -0.13),
-    (6,   (566, 219, 30, 32), (648, 218, 33, 33), -0.08),
-    (12,  (570, 219, 31, 33), (652, 218, 34, 33), -0.04),
-    (18,  (574, 219, 32, 33), (657, 218, 34, 33), 0.0),
-    (24,  (578, 219, 33, 34), (661, 219, 35, 34), 0.0),
-    (30,  (583, 219, 33, 34), (667, 219, 35, 34), 0.02),
-    (36,  (588, 219, 33, 34), (672, 219, 35, 34), 0.05),
-    (42,  (595, 219, 33, 34), (678, 220, 34, 34), 0.1),
-    (48,  (603, 219, 33, 34), (685, 220, 33, 34), 0.16),
-    (54,  (612, 217, 32, 34), (690, 221, 32, 34), 0.23),
-    (60,  (621, 216, 31, 33), (697, 222, 29, 33), 0.34),
-    (66,  (636, 215, 29, 33), (705, 222, 26, 33), 0.46),
-    (72,  (651, 214, 27, 33), (712, 221, 23, 33), 0.62),
-    (78,  (669, 213, 24, 33), (719, 221, 19, 33), 0.77),
-    (84,  (689, 213, 15, 33), (721, 220, 11, 33), 0.92),
-    (90,  (705, 216, 10, 30), (727, 220, 3, 30), 1.05),
-    (96,  (721, 218, 2, 30),  (730, 220, 0, 30), 1.20),
-    # The fronts of the lenses are hidden while the head turns away.
-    (98,  (724, 218, 0, 30),  (730, 220, 0, 30), 1.25),
-    (138, (528, 222, 0, 31),  (535, 219, 0, 32), -1.20),
-    (144, (528, 222, 5, 31),  (540, 219, 7, 32), -1.05),
-    (150, (524, 222, 8, 32),  (554, 219, 12, 33), -0.9),
-    (156, (526, 222, 15, 32), (571, 218, 20, 33), -0.74),
-    (162, (534, 222, 20, 32), (589, 218, 24, 33), -0.58),
-    (168, (540, 221, 23, 32), (603, 218, 29, 33), -0.44),
-    (174, (549, 220, 27, 32), (617, 218, 31, 33), -0.31),
-    (180, (555, 220, 28, 32), (628, 217, 32, 33), -0.23),
-    (186, (559, 220, 29, 32), (635, 218, 33, 33), -0.16),
-    (192, (560, 219, 29, 31), (639, 218, 33, 32), -0.13),
+    (0, [(559,193),(582,198),(589,216),(575,242),(551,255),(534,247),(528,224),(536,202)],
+        [(640,188),(661,196),(674,219),(665,242),(641,254),(619,244),(605,220),(615,198)], -0.13),
+    (24, [(576,193),(600,200),(610,219),(597,244),(573,255),(552,246),(545,221),(553,201)],
+         [(660,192),(682,200),(695,222),(684,247),(660,256),(640,245),(626,220),(637,200)], 0.0),
+    (48, [(601,191),(626,199),(638,218),(625,242),(600,253),(579,244),(570,221),(579,200)],
+         [(683,194),(706,203),(715,225),(705,247),(683,257),(663,246),(650,221),(661,201)], 0.16),
+    (60, [(624,188),(646,197),(654,217),(642,239),(619,251),(601,244),(594,220),(603,198)],
+         [(694,194),(718,203),(726,225),(717,248),(698,257),(686,245),(670,222),(682,201)], 0.34),
+    (66, [(638,187),(654,195),(663,215),(652,239),(634,251),(619,242),(611,218),(619,197)],
+         [(695,194),(719,201),(732,226),(724,249),(709,257),(695,244),(678,221),(684,202)], 0.46),
+    (72, [(652,187),(669,195),(680,215),(669,240),(649,251),(634,243),(629,218),(637,196)],
+         [(703,194),(724,202),(736,226),(728,250),(716,256),(705,242),(693,220),(697,202)], 0.62),
+    (78, [(672,187),(686,198),(695,218),(686,241),(671,252),(660,242),(651,217),(658,196)],
+         [(709,193),(729,202),(736,226),(727,250),(716,254),(711,242),(704,220),(705,201)], 0.77),
+    (84, [(691,190),(705,200),(713,220),(704,242),(690,252),(681,243),(675,218),(680,198)],
+         [(714,194),(729,203),(732,226),(729,240),(725,248),(720,236),(713,216),(712,201)], 0.92),
+    (90, [(710,192),(716,202),(719,220),(716,242),(708,253),(704,241),(701,219),(704,200)],
+         [(734,198)] * 8, 1.05),
+    (96, [(724,218)] * 8, [(734,218)] * 8, 1.20),
+    (138, [(528,222)] * 8, [(535,219)] * 8, -1.20),
+    (144, [(528,204),(530,211),(530,226),(526,235),(521,243),(521,234),(523,219),(525,211)],
+          [(538,194),(542,202),(544,222),(542,244),(537,253),(533,242),(532,221),(534,202)], -1.05),
+    (150, [(528,205),(533,210),(535,222),(527,235),(518,249),(516,242),(515,228),(519,213)],
+          [(552,193),(562,201),(566,220),(561,243),(551,254),(541,244),(537,220),(541,201)], -0.9),
+    (156, [(530,202),(541,209),(545,220),(536,237),(522,257),(517,249),(515,228),(520,210)],
+          [(573,190),(584,199),(589,219),(583,243),(570,254),(555,244),(550,220),(557,199)], -0.74),
+    (162, [(535,197),(549,206),(554,222),(546,239),(531,258),(519,248),(515,227),(520,207)],
+          [(586,188),(605,198),(609,219),(602,243),(583,254),(567,241),(562,218),(570,198)], -0.58),
+    (168, [(544,196),(558,204),(564,220),(555,239),(539,258),(525,249),(519,227),(526,207)],
+          [(603,187),(625,196),(634,217),(624,242),(601,253),(580,242),(573,219),(581,198)], -0.44),
+    (180, [(555,194),(573,201),(582,219),(570,241),(550,255),(531,245),(525,224),(534,203)],
+          [(631,187),(651,195),(661,217),(651,242),(628,254),(606,244),(595,219),(604,197)], -0.23),
+    (192, [(559,193),(582,198),(589,216),(575,242),(551,255),(534,247),(528,224),(536,202)],
+          [(640,188),(661,196),(674,219),(665,242),(641,254),(619,244),(605,220),(615,198)], -0.13),
 ]
 
 
 def track_slopes():
     """Monotone cubic slopes avoid sharp speed changes between track points."""
     times = np.array([row[0] for row in TRACK], dtype=np.float64)
-    values = np.array([(*row[1], *row[2], row[3]) for row in TRACK], dtype=np.float64)
+    values = np.array([(*np.ravel(row[1]), *np.ravel(row[2]), row[3]) for row in TRACK], dtype=np.float64)
     intervals = np.diff(times)
     secants = np.diff(values, axis=0) / intervals[:, None]
     slopes = np.zeros_like(values)
@@ -92,7 +100,7 @@ def track_at(frame):
               + (t**3 - 2*t**2 + t) * duration * TRACK_SLOPES[index]
               + (-2*t**3 + 3*t**2) * TRACK_VALUES[index + 1]
               + (t**3 - t**2) * duration * TRACK_SLOPES[index + 1])
-    return values[:4], values[4:8], values[8]
+    return values[:16].reshape(8, 2), values[16:32].reshape(8, 2), values[32]
 
 
 def key_texture():
@@ -115,56 +123,98 @@ def key_texture():
     return result.astype(np.float32) / 255
 
 
+def smooth_outline(points):
+    """Closed Catmull-Rom contour through the eight rotoscoped landmarks."""
+    t = np.linspace(0, 1, 16, endpoint=False)[:, None]
+    segments = []
+    for index in range(len(points)):
+        p0, p1, p2, p3 = [points[i % len(points)] for i in range(index-1, index+3)]
+        segments.append(0.5 * (2*p1 + (-p0+p2)*t
+                              + (2*p0-5*p1+4*p2-p3)*t*t
+                              + (-p0+3*p1-3*p2+p3)*t*t*t))
+    return np.concatenate(segments).astype(np.float32)
+
+
+def lens_mask(lens, shape):
+    """Supersampled, inset alpha: its feather never spills outside the glass."""
+    outline = smooth_outline(lens)
+    low, high = outline.min(axis=0), outline.max(axis=0)
+    if high[0] - low[0] < 3 or high[1] - low[1] < 3:
+        return None
+    x0, y0 = np.maximum(0, np.floor(low - 3).astype(int))
+    x1, y1 = np.minimum([shape[1], shape[0]], np.ceil(high + 4).astype(int))
+    scale = 4
+    coverage = np.zeros(((y1-y0)*scale, (x1-x0)*scale), np.uint8)
+    polygon = np.round((outline - [x0, y0])*scale).astype(np.int32)
+    cv2.fillPoly(coverage, [polygon], 255)
+    inside = cv2.distanceTransform(coverage, cv2.DIST_L2, cv2.DIST_MASK_PRECISE) / scale
+    alpha = np.clip((inside - 0.8) / 1.4, 0, 1)
+    alpha = alpha*alpha*(3 - 2*alpha)
+    alpha = cv2.resize(alpha, (x1-x0, y1-y0), interpolation=cv2.INTER_AREA)
+    return (x0, y0, x1, y1), alpha, low, high
+
+
 def composite_lens(frame, lens, yaw, texture, side):
-    cx, cy, rx, ry = lens
-    if rx <= 0:
+    mask = lens_mask(lens, frame.shape)
+    if mask is None:
         return
-    # The outer halves of aviator lenses wrap slightly away from the face.
-    yaw += side * 0.05
-    cy += 1.5
-    x0, x1 = max(0, int(cx-rx-2)), min(frame.shape[1], int(cx+rx+3))
-    y0, y1 = max(0, int(cy-ry-2)), min(frame.shape[0], int(cy+ry+3))
+    (x0, y0, x1, y1), alpha, low, high = mask
+    cx, cy = (low + high) / 2
+    rx, ry = (high - low) / 2
     yy, xx = np.mgrid[y0:y1, x0:x1].astype(np.float32)
     u, v = (xx-cx)/rx, (yy-cy)/ry
+    region = frame[y0:y1, x0:x1].astype(np.float32)
 
-    # Rounded aviator shape, narrowing slightly towards the bottom. The soft
-    # one-pixel edge preserves the original metal rim and avoids a hard sticker.
-    tapered_u = u / np.maximum(0.85, 1 - 0.08 * np.maximum(v, 0))
-    distance = np.sqrt(tapered_u*tapered_u + v*v)
-    alpha = np.clip((1.0 - distance) * min(rx, ry) + 0.25, 0, 1)
+    # Keep the original broad illumination and top-of-glass glare, but suppress
+    # the old skyline detail. The copper/red palette matches the cheek caustic.
+    blurred = cv2.GaussianBlur(region, (0, 0), 5)
+    luminance = cv2.cvtColor(blurred, cv2.COLOR_BGR2GRAY)
+    row_light = np.maximum(luminance.mean(axis=1, keepdims=True), 20)
+    illumination = np.clip(luminance / row_light, 0.65, 1.35)
+    stops = [-1.1, -0.65, -0.1, 0.4, 1.1]
+    colors = np.array([[62,70,82], [43,65,104], [23,64,163],
+                       [18,40,100], [14,23,43]], dtype=np.float32)
+    glass = np.stack([np.interp(v, stops, colors[:, channel]) for channel in range(3)], axis=-1)
+    edge = np.clip(u*u + v*v, 0, 1)
+    glass *= (illumination * (1 - 0.13*edge))[..., None]
+    glass = 0.72*glass + 0.28*blurred*np.array([0.65,0.8,1], dtype=np.float32)
+    replace = np.clip((v + 0.75)/0.45, 0, 1)
+    replace = replace*replace*(3 - 2*replace)
+    glass = region*(1-replace[..., None]) + glass*replace[..., None]
 
-    # The key image stays the same size on the glass. A small bounded radial
-    # bend and sideways parallax give it perspective without zooming or jumping.
-    radial = 1 + 0.04 * (u*u + v*v)
-    tx = 256 + 140 * (u*radial + 0.10*yaw + 0.025*yaw*v) + side*5
-    ty = 256 + 128 * (v*radial + 0.02*yaw*u)
+    # Reflection scale is fixed relative to the glass. Only gentle parallax and
+    # lens curvature change as the head turns; a slight optical blur softens it.
+    radial = 1 + 0.065*(u*u + v*v)
+    tx = 256 + 178*(u*radial + 0.10*yaw + 0.025*yaw*v) + side*5
+    ty = 256 + 164*(v*radial + 0.025*yaw*u)
     keys = cv2.remap(texture, tx.astype(np.float32), ty.astype(np.float32),
                      cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+    keys = cv2.GaussianBlur(keys, (0, 0), 0.65)
+    reflection = keys*(0.22 + 0.06*np.cos(yaw))*(1 - 0.35*edge)*illumination
+    # Screen blending retains the underlying glass shading instead of laying
+    # opaque white lettering over it. Warm reflected light is intentionally dim.
+    reflected_light = np.array([50,130,220], dtype=np.float32)
+    glass += (255-glass)*(reflected_light/255)*reflection[..., None]
 
-    # Curved lens normals and a fixed light direction drive the shading.
-    nx = u * 0.22
-    ny = v * 0.19
-    nz = np.sqrt(np.maximum(0.1, 1 - nx*nx - ny*ny))
-    c, s = np.cos(yaw), np.sin(yaw)
-    world_x = nx*c + nz*s
-    world_z = nz*c - nx*s
-    # A single fixed upper-left light illuminates the blue-tinted glass and keys.
-    light = np.array([-0.38, -0.30, 0.87], dtype=np.float32)
-    light /= np.linalg.norm(light)
-    diffuse = np.clip(world_x*light[0] + ny*light[1] + world_z*light[2], 0, 1)
-    halfway = light + np.array([0, 0, 1], dtype=np.float32)
-    halfway /= np.linalg.norm(halfway)
-    specular_dot = np.clip(world_x*halfway[0] + ny*halfway[1] + world_z*halfway[2], 0, 1)
-    specular = 0.20*specular_dot**10 + 0.40*specular_dot**80
-    edge = np.clip(distance, 0, 1)
-    shade = 0.60 + 0.40*diffuse - 0.22*edge*edge
-    # OpenCV uses BGR: a visible smoky blue base with warm, legible keys.
-    glass = np.stack((126*shade, 94*shade, 68*shade), axis=-1)
-    key_light = keys * (0.75 + 0.25*diffuse) * (1 - 0.14*edge)
-    glass += key_light[..., None] * np.array([52, 90, 130], dtype=np.float32)
-    glass += specular[..., None] * np.array([68, 78, 85], dtype=np.float32)
-    region = frame[y0:y1, x0:x1].astype(np.float32)
-    frame[y0:y1, x0:x1] = np.clip(region*(1-alpha[..., None]) + glass*alpha[..., None], 0, 255).astype(np.uint8)
+    top = np.clip((-v + 0.08)/0.7, 0, 1)
+    glare = np.clip((cv2.cvtColor(region, cv2.COLOR_BGR2GRAY)-125)/95, 0, 0.75)*top
+    detail = (region-blurred)*top[..., None]*0.45
+    glass += detail
+    glass = glass*(1-glare[..., None]) + region*glare[..., None]
+
+    # At oblique angles retain the filmed transmission and the foreground metal
+    # arms. Neutral source pixels reveal the face/background through the glass;
+    # treating these as an opaque colored disc was especially conspicuous.
+    oblique = np.clip((abs(yaw)-0.35)/0.55, 0, 1)
+    saturation = cv2.cvtColor(frame[y0:y1, x0:x1], cv2.COLOR_BGR2HSV)[:, :, 1]/255
+    transmission = oblique*(1-np.clip((saturation-0.20)/0.45, 0, 1))
+    opacity = 0.96*(1-transmission)
+    alpha *= opacity
+    blended = np.clip(region*(1-alpha[..., None]) + glass*alpha[..., None], 0, 255).astype(np.uint8)
+    # Write only covered pixels so untouched face/rim pixels are bit-identical
+    # before encoding (including protection from float round-off).
+    target = frame[y0:y1, x0:x1]
+    target[alpha > 0] = blended[alpha > 0]
 
 
 def main():
