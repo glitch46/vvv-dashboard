@@ -13,6 +13,26 @@
   "alert_usd": "10000",
   "max_hops": 2,
   "daily_hour_utc": 12,
+  "address_labels": {
+    "0x9d57d6005c392ed0681496b052c4d660fa7b7831": {
+      "label": "ByBit Deposit",
+      "entity": "Bybit",
+      "confidence": "explorer-tagged",
+      "source": "https://etherscan.io/address/0x9d57d6005c392ed0681496b052c4d660fa7b7831",
+      "source_chain": "Ethereum (exact same EOA address is active on Base)",
+      "checked_at": "2026-11-14",
+      "terminal": false
+    },
+    "0xbaed383ede0e5d9d72430661f3285daa77e9439f": {
+      "label": "Bybit: Hot Wallet 6",
+      "entity": "Bybit",
+      "confidence": "explorer-tagged",
+      "source": "https://etherscan.io/address/0xbaed383ede0e5d9d72430661f3285daa77e9439f",
+      "source_chain": "Ethereum (exact same EOA address is active on Base)",
+      "checked_at": "2026-11-14",
+      "terminal": true
+    }
+  },
   "seed_transactions": [
     "0xea3c372c5a650086eed2b709d179c16b31bcaf88e0bf194c1ebf21f1dab72836",
     "0x1928f8e8e199ad497388bca8320457f77cf4dc2f7e1ca2fc136156809225ce75",

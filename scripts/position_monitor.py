@@ -8,6 +8,7 @@ Historical backfill and live scanning have independent, durable checkpoints.
 import argparse
 import copy
 import datetime as dt
+import html
 import json
 import os
 import re
@@ -27,6 +28,22 @@ STAKED = '0x9e71bc8eea02a63969f509818f2dafb9254532904319f9dbda79b67bd34a5f3d'
 ZERO = '0x' + '0' * 40
 DEAD = '0x000000000000000000000000000000000000dead'
 CONFIG = chain.DATA / 'position_watch.json'
+EXCHANGES = re.compile(r'\b(bybit|binance|coinbase|kraken|okx|kucoin|mexc|bitget|bitfinex|gemini|htx|crypto\.com)\b', re.I)
+
+
+class PositionRPC(chain.RPC):
+    """Public archive RPC first for logs; authenticated index stays independent.
+
+    Some authenticated plans stall on historical/wildcard log requests. The
+    public endpoints used by the dashboard support our bounded 40k windows.
+    Alchemy remains the indexed-transfer source and an ordinary RPC fallback.
+    """
+    def __init__(self, budget):
+        super().__init__(budget)
+        public = [(url, headers) for url, headers in self.providers
+                  if url in (os.environ.get('PUBLICNODE_RPC_URL', 'https://base-rpc.publicnode.com'),
+                             os.environ.get('BASE_RPC_URL', 'https://mainnet.base.org'))]
+        self.providers = public + [provider for provider in self.providers if provider not in public]
 
 
 def load_config(path=CONFIG):
@@ -57,6 +74,70 @@ def read_json_url(url):
     request = urllib.request.Request(url, headers={'User-Agent': 'vvv-position-monitor'})
     with urllib.request.urlopen(request, timeout=12) as response:
         return json.load(response)
+
+
+def explorer_label(title, address, now):
+    title = html.unescape(re.sub(r'\s+', ' ', title)).strip()
+    match = EXCHANGES.search(title)
+    source = f'https://etherscan.io/address/{address}'
+    if not match:
+        return {'label': 'Owner unverified / no exchange name in explorer title',
+                'entity': None, 'confidence': 'unverified', 'source': source,
+                'source_chain': 'Ethereum; absence of a label does not prove private ownership',
+                'checked_at': chain.utc(now), 'terminal': False}
+    label = re.split(r'\s*\|\s*Address:', title, maxsplit=1, flags=re.I)[0][:180]
+    return {'label': label, 'entity': match.group(1), 'confidence': 'explorer-tagged',
+            'source': source, 'source_chain': 'Ethereum; exact-address label, not proof of current Base custody',
+            'checked_at': chain.utc(now), 'terminal': bool(re.search(r'hot wallet', label, re.I))}
+
+
+def refresh_labels(state, config, now):
+    labels = state.setdefault('labels', {})
+    for address, label in config.get('address_labels', {}).items():
+        labels[address] = copy.deepcopy(label)
+    deadline = time.monotonic() + 18
+    for wallet, info in state['wallets'].items():
+        label = labels.get(wallet)
+        if label and label.get('terminal') and wallet not in config['roots']:
+            info['terminal'] = True
+        if wallet in config.get('address_labels', {}):
+            continue  # Dated, manually source-checked evidence, never pretend it was refreshed.
+        if label and now - label.get('fetched_at', now) < DAY:
+            continue
+        if time.monotonic() >= deadline:
+            break
+        try:
+            url = f'https://etherscan.io/address/{wallet}'
+            request = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 VVV investigation'})
+            with urllib.request.urlopen(request, timeout=6) as response:
+                page = response.read(1000000).decode('utf-8', errors='replace')
+            title = re.search(r'<title>(.*?)</title>', page, re.I | re.S)
+            if not title or 'etherscan' not in title.group(1).lower():
+                raise ValueError('Explorer title unavailable')
+            label = explorer_label(title.group(1), wallet, now)
+        except Exception:
+            label = {'label': 'Owner/exchange attribution unverified; explorer lookup unavailable',
+                     'entity': None, 'confidence': 'unverified',
+                     'source': f'https://etherscan.io/address/{wallet}',
+                     'checked_at': None, 'terminal': False}
+        label['fetched_at'] = now
+        labels[wallet] = label
+        if label.get('terminal') and wallet not in config['roots']:
+            info['terminal'] = True
+
+
+def attribution_lines(state):
+    lines = ['\nExchange attribution (public labels and observed fund flow, not ownership proof):']
+    for wallet in state['wallets']:
+        label = state.get('labels', {}).get(wallet)
+        if not label:
+            lines.append(f'{wallet}: owner/exchange attribution unverified.')
+            continue
+        lines += [f'{wallet}: {label["label"]} [{label["confidence"]}]',
+                  f'Source: {label["source"]}; checked {label.get("checked_at") or "unavailable"}. '
+                  + label.get('source_chain', '')]
+    lines.append('An exchange-linked destination does not identify the sender as the exchange. A deposit/sweep is not evidence of an exchange trade.')
+    return lines
 
 
 def select_quote(pairs, now):
@@ -102,7 +183,7 @@ def new_state(config, head, now):
     return {'version': 2, 'boot_head': head, 'boot_at': now,
             'start_block': config['start_block'], 'wallets': {}, 'events': {},
             'outbox': [], 'baseline_queued': False, 'last_daily': None,
-            'updated_at': None, 'quote': None, 'warnings': {}}
+            'updated_at': None, 'quote': None, 'warnings': {}, 'labels': {}}
 
 
 def wallet_entry(start, depth, head, parent=None, terminal=False, opening=0, opening_staked=0):
@@ -364,7 +445,7 @@ def expand_wallets(state, config, rpc):
             changed = True
 
 
-def event_description(event, wallets, rpc=None):
+def event_description(event, wallets, rpc=None, labels=None):
     lines = []
     tx = event['transaction']
     sender = (tx.get('from') or '').lower()
@@ -381,6 +462,9 @@ def event_description(event, wallets, rpc=None):
                     else 'Staking reward/other payment' if src == chain.STAKING
                     else 'Staked VVV' if dst == chain.STAKING else 'VVV transfer')
             lines.append(f'{kind}: {amount(move["amount"])} VVV\n{src} -> {dst}')
+            label = (labels or {}).get(dst)
+            if label and label.get('entity'):
+                lines.append(f'Destination: {label["label"]} [{label["confidence"]}]; {label["source"]}. Exchange deposit/transfer, not verified sale.')
         elif move['address'] == chain.STAKING:
             lines.append(f'sVVV transfer: {amount(move["amount"])} sVVV\n{src} -> {dst}')
         else:
@@ -464,6 +548,8 @@ def flush(state, save, token, chat_id, dry_run=False, limit=20):
             time.sleep(1.05)  # Respect Telegram's per-chat message rate.
         item = state['outbox'][0]
         delivery.send(token, chat_id, item['text'], dry_run)
+        if not dry_run:
+            print(f'Telegram delivered {item["id"]} ({len(item["text"])} characters)', flush=True)
         state['outbox'].pop(0)
         save()
 
@@ -529,6 +615,7 @@ def report_lines(state, config, rpc, head, now, baseline=False):
                 lines.append('Balance reconciliation incomplete; history is being rechecked.')
         if info['context_cursor'] < min(state['boot_head'], head) or info['context_live_cursor'] < head:
             lines.append('Other-asset context incomplete; core VVV/staking coverage shown separately.')
+    lines += attribution_lines(state)
     selected = [event for event in state['events'].values() if baseline or not event['reported']]
     selected.sort(key=lambda event: (event['block'], event['index']))
     lines.append(f'\nActivity included: {len(selected)} transaction(s), including below-threshold activity.')
@@ -547,7 +634,7 @@ def report_lines(state, config, rpc, head, now, baseline=False):
                  f'all inflows {amount(received)}; all outflows {amount(sent)} VVV. Inflows include unrelated receipts/rewards.')
     for event in selected:
         lines += [f'\n{chain.utc(event["at"])} / block {event["block"]:,}',
-                  *event_description(event, state['wallets'], rpc),
+                  *event_description(event, state['wallets'], rpc, state.get('labels')),
                   f'https://basescan.org/tx/{event["hash"]}']
     if not selected:
         lines.append('No newly indexed wallet activity since the previous report.')
@@ -580,7 +667,7 @@ def queue_alerts(state, config, rpc, quote, now):
             lines.append(f'Estimated value: ${usd:,.2f}; ${valuation["usd"]}/VVV quote at {chain.utc(valuation["at"])} ({valuation["source"]}). Not execution proceeds.')
         else:
             lines.append('USD valuation unavailable; the VVV amount meets the token threshold.')
-        lines += event_description(event, state['wallets'], rpc)
+        lines += event_description(event, state['wallets'], rpc, state.get('labels'))
         # Balances are from one confirmed block, not an unpinned latest read.
         for wallet, value in candidates.items():
             if value:
@@ -611,6 +698,7 @@ def run(state, config, rpc, head, now, save, quote):
         if event['block'] > head:
             raise RuntimeError('Seed transaction is newer than confirmed head')
     expand_wallets(state, config, rpc)
+    refresh_labels(state, config, now)
     save()
     # Live checks always precede the historical work. New recipients are scanned
     # from their first linked block, including movements within the same poll.
@@ -631,6 +719,12 @@ def run(state, config, rpc, head, now, save, quote):
                 if info['cursor'] == start - 1:
                     info['cursor'] = stop
                 expand_wallets(state, config, rpc)
+                # Source-checked hot wallets are endpoints: their unrelated
+                # omnibus inventory is not added to the monitored position.
+                for address, label in state.get('labels', {}).items():
+                    if label.get('terminal') and address in state['wallets'] and address not in config['roots']:
+                        state['wallets'][address]['terminal'] = True
+                print(f'Live VVV checkpoint {wallet}: {stop:,}', flush=True)
                 save()
             processed.add(wallet)
             queue_alerts(state, config, rpc, quote, now)
@@ -677,6 +771,7 @@ def run(state, config, rpc, head, now, save, quote):
         finally:
             rpc.deadline = full_deadline
     expand_wallets(state, config, rpc)
+    refresh_labels(state, config, now)
     queue_alerts(state, config, rpc, quote, now)
     key = daily_key(now, config['daily_hour_utc'])
     baseline = not state['baseline_queued'] and core_complete(state)
@@ -723,7 +818,7 @@ def main():
     # Previously queued messages get a delivery attempt even if an RPC is down.
     if state:
         flush(state, save, token, chat_id, args.dry_run)
-    rpc = chain.RPC(float(os.environ.get('VVV_ALERT_BUDGET_SECONDS', '420')))
+    rpc = PositionRPC(float(os.environ.get('VVV_ALERT_BUDGET_SECONDS', '420')))
     confirmations = max(0, int(os.environ.get('VVV_ALERT_CONFIRMATIONS', '64')))
     head = max(0, chain.number(rpc.call('eth_blockNumber', [])) - confirmations)
     now = int(time.time())

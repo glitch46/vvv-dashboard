@@ -1,5 +1,6 @@
 import copy
 import datetime as dt
+import os
 import time
 import unittest
 from unittest.mock import Mock, patch
@@ -322,6 +323,7 @@ class PollingTests(unittest.TestCase):
                     target['events'].setdefault(e['hash'], copy.deepcopy(e))
 
         with patch.object(monitor, 'scan_core', side_effect=scan), \
+                patch.object(monitor, 'refresh_labels'), \
                 patch.object(monitor, 'report_lines', return_value=(['report'], [], True)):
             monitor.run(state, config(), self.rpc(), 102, 1700001000, Mock(), None)
         self.assertEqual(state['wallets'][A]['live_cursor'], 102)
@@ -333,7 +335,8 @@ class PollingTests(unittest.TestCase):
         state = state_with()
         for info in state['wallets'].values():
             info['live_cursor'] = 99
-        with patch.object(monitor, 'scan_core', side_effect=RuntimeError('RPC offline')):
+        with patch.object(monitor, 'scan_core', side_effect=RuntimeError('RPC offline')), \
+                patch.object(monitor, 'refresh_labels'):
             with self.assertRaisesRegex(RuntimeError, 'RPC offline'):
                 monitor.run(state, config(), self.rpc(), 102, 1700001000, Mock(), None)
         self.assertEqual(state['wallets'][ROOT]['live_cursor'], 99)
@@ -371,7 +374,7 @@ class PollingTests(unittest.TestCase):
         with patch('sys.argv', ['notify_unstaker.py', '--dry-run']), \
                 patch.object(monitor, 'load_config', return_value=config()), \
                 patch.object(monitor.Path, 'exists', return_value=False), \
-                patch.object(chain, 'RPC', return_value=rpc), \
+                patch.object(monitor, 'PositionRPC', return_value=rpc), \
                 patch.object(monitor, 'price_quote', return_value=None), \
                 patch.object(monitor, 'run'), \
                 patch.object(monitor.delivery, 'save_state') as save, \
@@ -379,6 +382,50 @@ class PollingTests(unittest.TestCase):
             monitor.main()
         save.assert_not_called()
         telegram.assert_not_called()
+
+
+class ExchangeAttributionTests(unittest.TestCase):
+    def test_public_deposit_tag_is_sourced_not_called_proven_ownership(self):
+        label = monitor.explorer_label(
+            f'ByBit Deposit: {A} | Address: 0x3333...3333 | Etherscan', A, 1700000000)
+        self.assertEqual(label['entity'].lower(), 'bybit')
+        self.assertEqual(label['confidence'], 'explorer-tagged')
+        self.assertEqual(label['source'], f'https://etherscan.io/address/{A}')
+        self.assertFalse(label['terminal'])
+
+    def test_unlabeled_address_is_not_classified_as_private_or_exchange(self):
+        label = monitor.explorer_label('Address: 0x1111...1111 | Etherscan', ROOT, 1700000000)
+        self.assertIsNone(label['entity'])
+        self.assertEqual(label['confidence'], 'unverified')
+
+    def test_sending_to_bybit_does_not_propagate_ownership_label_to_sender(self):
+        state = state_with(event([transfer(ROOT, A, 1)]))
+        recipient(state, A, 100, 1, ROOT)
+        settings = config()
+        settings['address_labels'] = {A: monitor.explorer_label('ByBit Deposit | Address: 0x3333 | Etherscan', A, 1700000000)}
+        with patch.object(monitor.urllib.request, 'urlopen', side_effect=RuntimeError('unavailable')):
+            monitor.refresh_labels(state, settings, 1700000000)
+        self.assertEqual(state['labels'][A]['entity'].lower(), 'bybit')
+        self.assertIsNone(state['labels'][ROOT]['entity'])
+        text = '\n'.join(monitor.event_description(next(iter(state['events'].values())), state['wallets'], labels=state['labels']))
+        self.assertIn('ByBit Deposit', text)
+        self.assertIn('not verified sale', text)
+
+    def test_source_checked_hot_wallet_is_terminal(self):
+        state = state_with()
+        recipient(state, A, 100, 1, ROOT)
+        settings = config()
+        settings['address_labels'] = {A: monitor.explorer_label('Bybit: Hot Wallet 6 | Address: 0x3333 | Etherscan', A, 1700000000)}
+        with patch.object(monitor.urllib.request, 'urlopen', side_effect=RuntimeError('unavailable')):
+            monitor.refresh_labels(state, settings, 1700000000)
+        self.assertTrue(state['wallets'][A]['terminal'])
+
+    def test_public_rpc_precedes_authenticated_logs_without_losing_index(self):
+        with patch.dict(os.environ, {'ALCHEMY_API_KEY': 'test', 'VVV_ACTIVITY_RPC_PROVIDER': 'alchemy'}):
+            rpc = monitor.PositionRPC(10)
+        self.assertNotEqual(rpc.providers[0], rpc.index_provider)
+        self.assertIn('publicnode', rpc.providers[0][0])
+        self.assertIsNotNone(rpc.index_provider)
 
 
 if __name__ == '__main__':

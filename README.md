@@ -121,6 +121,14 @@ Rules:
   part of an outflow. Reusing an address does not reset the hop count. Contracts,
   pools, staking/token contracts and burns are terminal endpoints; cross-chain
   continuation is not indexed. A link is fund-flow evidence, not ownership.
+- Reports/alerts include sourced exchange attribution. `address_labels` holds
+  dated, manually checked public-explorer labels; unlabeled recipients are also
+  checked against Etherscan titles, with 24-hour caching. Cross-chain exact-address
+  labels identify their source chain explicitly, not proof of current Base custody.
+  The observed `0x9d57...7831` deposit is tagged ByBit Deposit; its
+  `0xbaed...439f` sweep destination is tagged Bybit: Hot Wallet 6. The latter is a
+  terminal omnibus endpoint: unrelated exchange inventory/activity is not treated
+  as this whale's position. Sender ownership is never inferred from a deposit.
 - The initial investigation starts at the verified 500,000 VVV initiation in
   block `53989536`; the recipient's own history starts at its first linked receipt
   in block `57150775`. Four seed transactions are reverified against live receipts.
@@ -160,6 +168,10 @@ without `--dry-run` sends a configuration test to the existing destination.
 `VVV_ALERT_CONFIRMATIONS` defaults to a 64-block head lag (not L1 finality);
 `VVV_ALERT_BUDGET_SECONDS` defaults to 420 seconds. Historical backfill gets
 at most 120 seconds per run so it does not displace live checks and reporting.
+Position RPC prefers the dashboard's public archive endpoints for bounded log
+queries, with authenticated RPC fallbacks. Alchemy remains the independent
+transfer-index source; slow authenticated wildcard-log queries cannot take
+precedence over the working public archive path.
 
 ## Supply data (Venice Crypto RPC on Base)
 
