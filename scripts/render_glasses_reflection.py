@@ -190,7 +190,7 @@ def composite_lens(frame, lens, yaw, texture, side):
     keys = cv2.remap(texture, tx.astype(np.float32), ty.astype(np.float32),
                      cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
     keys = cv2.GaussianBlur(keys, (0, 0), 0.65)
-    reflection = keys*(0.22 + 0.06*np.cos(yaw))*(1 - 0.35*edge)*illumination
+    reflection = keys*(0.28 + 0.07*np.cos(yaw))*(1 - 0.35*edge)*illumination
     # Screen blending retains the underlying glass shading instead of laying
     # opaque white lettering over it. Warm reflected light is intentionally dim.
     reflected_light = np.array([50,130,220], dtype=np.float32)
