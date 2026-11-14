@@ -385,6 +385,27 @@ class PollingTests(unittest.TestCase):
 
 
 class ExchangeAttributionTests(unittest.TestCase):
+    def test_changed_sourced_evidence_reports_once_without_waiting_for_daily(self):
+        settings = config()
+        settings['address_labels'] = {A: {'label': 'ByBit Deposit', 'source': 'https://etherscan.io/address/' + A}}
+        state = state_with()
+        now = 1700001000
+        state.update(baseline_queued=True, last_daily=monitor.daily_key(now, 12))
+        for info in state['wallets'].values():
+            info.update(cursor=99, live_cursor=99)
+        rpc = PollingTests().rpc()
+        with patch.object(monitor, 'refresh_labels'), \
+                patch.object(monitor, 'report_lines', return_value=(['report'], [], True)) as report:
+            monitor.run(state, settings, rpc, 99, now, Mock(), None)
+            monitor.run(state, settings, rpc, 99, now + 600, Mock(), None)
+            self.assertEqual(report.call_count, 1)
+            self.assertEqual(len(state['outbox']), 1)
+            self.assertTrue(state['outbox'][0]['id'].startswith('attribution:'))
+            settings['address_labels'][A]['label'] = 'Bybit: Hot Wallet'
+            monitor.run(state, settings, rpc, 99, now + 1200, Mock(), None)
+            self.assertEqual(report.call_count, 2)
+            self.assertEqual(len(state['outbox']), 2)
+
     def test_public_deposit_tag_is_sourced_not_called_proven_ownership(self):
         label = monitor.explorer_label(
             f'ByBit Deposit: {A} | Address: 0x3333...3333 | Etherscan', A, 1700000000)

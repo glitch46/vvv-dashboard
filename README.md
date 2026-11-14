@@ -129,6 +129,8 @@ Rules:
   `0xbaed...439f` sweep destination is tagged Bybit: Hot Wallet 6. The latter is a
   terminal omnibus endpoint: unrelated exchange inventory/activity is not treated
   as this whale's position. Sender ownership is never inferred from a deposit.
+  Changed source-checked attribution queues one investigation update immediately,
+  independently of the next daily report; unchanged labels do not repeat it.
 - The initial investigation starts at the verified 500,000 VVV initiation in
   block `53989536`; the recipient's own history starts at its first linked receipt
   in block `57150775`. Four seed transactions are reverified against live receipts.

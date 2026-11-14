@@ -8,6 +8,7 @@ Historical backfill and live scanning have independent, durable checkpoints.
 import argparse
 import copy
 import datetime as dt
+import hashlib
 import html
 import json
 import os
@@ -690,6 +691,10 @@ def daily_key(now, hour):
     return dt.datetime.fromtimestamp(now - hour * 3600, dt.timezone.utc).date().isoformat()
 
 
+def attribution_revision(config):
+    return hashlib.sha256(json.dumps(config.get('address_labels', {}), sort_keys=True).encode()).hexdigest()
+
+
 def run(state, config, rpc, head, now, save, quote):
     state['scan_head'] = head
     add_roots(state, config)
@@ -775,14 +780,21 @@ def run(state, config, rpc, head, now, save, quote):
     queue_alerts(state, config, rpc, quote, now)
     key = daily_key(now, config['daily_hour_utc'])
     baseline = not state['baseline_queued'] and core_complete(state)
-    if baseline or state['last_daily'] != key:
-        lines, selected, reconciled = report_lines(state, config, rpc, head, now, baseline)
+    revision = attribution_revision(config)
+    attribution_update = bool(config.get('address_labels')) and state.get('attribution_report_revision') != revision
+    if baseline or state['last_daily'] != key or attribution_update:
+        lines, selected, reconciled = report_lines(state, config, rpc, head, now, baseline or attribution_update)
+        if attribution_update and not baseline:
+            lines[0] = 'VVV position — exchange attribution update'
         if not reconciled:
             lines[0] += ' (reconciliation incomplete)'
-        queue(state, f'baseline:{state["boot_head"]}' if baseline and reconciled else f'daily:{key}', lines)
+        report_id = (f'baseline:{state["boot_head"]}' if baseline and reconciled
+                     else f'attribution:{revision}' if attribution_update else f'daily:{key}')
+        queue(state, report_id, lines)
         for event in selected:
             event['reported'] = True
         state['last_daily'] = key
+        state['attribution_report_revision'] = revision
         if baseline and reconciled:
             state['baseline_queued'] = True
     state['updated_at'] = now
