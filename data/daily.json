@@ -395,10 +395,10 @@
     "initiated_users": 0,
     "queue_amount": 45996.909232531536,
     "unlock_amount": 1362.1278670041966,
-    "vvv_price_usd": 20.215669052604746,
+    "vvv_price_usd": 21.16766841991472,
     "trade_volume_usd": null,
-    "staked_amount": 0.9253077411510873,
-    "staked_users": 1,
+    "staked_amount": 100.22464428668233,
+    "staked_users": 29,
     "buy_volume_usd": null,
     "sell_volume_usd": null
   }
