@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "as_of": "2026-11-23T12:08:19Z",
+  "as_of": "2026-11-23T16:08:01Z",
   "ranking_days": 30,
   "history_days": null,
   "history_scope": "all",
@@ -216,9 +216,9 @@
           "amount": 0.0094978
         }
       ],
-      "history_as_of": "2026-11-23T12:08:19Z",
+      "history_as_of": "2026-11-23T16:08:01Z",
       "history_source": "alchemy+rpc-receipts",
-      "observed_days": 668.5
+      "observed_days": 668.7
     },
     {
       "address": "0x331c9a4dd35feb0147e985ae7d378aaed141c427",
@@ -408,9 +408,9 @@
           "amount": 1057.71788672
         }
       ],
-      "history_as_of": "2026-11-23T12:08:19Z",
+      "history_as_of": "2026-11-23T16:08:01Z",
       "history_source": "alchemy+rpc-receipts",
-      "observed_days": 552.4
+      "observed_days": 552.6
     },
     {
       "address": "0x021dcdeae23627d70ec710f793a0280d420d9c20",
@@ -560,9 +560,9 @@
           "amount": 99990.0
         }
       ],
-      "history_as_of": "2026-11-23T12:08:19Z",
+      "history_as_of": "2026-11-23T16:08:01Z",
       "history_source": "alchemy+rpc-receipts",
-      "observed_days": 125.5
+      "observed_days": 125.7
     },
     {
       "address": "0x0792b96ab761071a9ff00913a41f2a599040e2ba",
@@ -660,10 +660,10 @@
       "claimed_total": 100000.0,
       "unreconciled_outflow": 0.0,
       "history_summary": {
-        "transactions": 919,
+        "transactions": 920,
         "first_activity_at": "2025-01-23T23:02:57Z",
-        "last_activity_at": "2026-11-23T06:41:19Z",
-        "received_vvv": 2666160.49484663,
+        "last_activity_at": "2026-11-23T16:00:26Z",
+        "received_vvv": 2669302.44198938,
         "sent_vvv": 2666160.49484663,
         "staked_vvv": 1739658.30615113,
         "other_staking_payments": 441273.77447091
@@ -722,11 +722,17 @@
           "tx": "0xbb671bd6ad5d6917c5fc8fd9e555bbbed02720cdef8ca49b837b306f67114f1d",
           "action": "Transferred VVV",
           "amount": 1528.83919766
+        },
+        {
+          "at": "2026-11-23T16:00:26Z",
+          "tx": "0x4045f7ecee2006e196dfbc94ff7844ade3290f8a9bcd4b563c3efeb3d9411f77",
+          "action": "Received VVV",
+          "amount": 3141.94714275
         }
       ],
-      "history_as_of": "2026-11-23T12:08:19Z",
+      "history_as_of": "2026-11-23T16:08:01Z",
       "history_source": "alchemy+rpc-receipts",
-      "observed_days": 668.5
+      "observed_days": 668.7
     },
     {
       "address": "0x8dac92aaad999a6181488b8546bbfb540eddc9c3",
@@ -1026,9 +1032,9 @@
           "amount": 89.78629075
         }
       ],
-      "history_as_of": "2026-11-23T12:08:19Z",
+      "history_as_of": "2026-11-23T16:08:01Z",
       "history_source": "alchemy+rpc-receipts",
-      "observed_days": 359.7
+      "observed_days": 359.9
     },
     {
       "address": "0x73756f71f69797997b0ca9f23f9ee127434954e1",
@@ -1218,9 +1224,9 @@
           "amount": 21029.41938185
         }
       ],
-      "history_as_of": "2026-11-23T12:08:19Z",
+      "history_as_of": "2026-11-23T16:08:01Z",
       "history_source": "alchemy+rpc-receipts",
-      "observed_days": 664.3
+      "observed_days": 664.5
     },
     {
       "address": "0xe8d8bb57edf69e4daf806ba60bf2658c81eb91db",
@@ -1382,9 +1388,9 @@
           "amount": 15821.10802527
         }
       ],
-      "history_as_of": "2026-11-23T12:08:19Z",
+      "history_as_of": "2026-11-23T16:08:01Z",
       "history_source": "alchemy+rpc-receipts",
-      "observed_days": 64.4
+      "observed_days": 64.6
     }
   ]
 }
