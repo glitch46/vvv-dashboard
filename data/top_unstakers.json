@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "as_of": "2026-11-23T00:15:01Z",
+  "as_of": "2026-11-23T04:08:16Z",
   "ranking_days": 30,
   "history_days": null,
   "history_scope": "all",
@@ -216,9 +216,9 @@
           "amount": 0.0094978
         }
       ],
-      "history_as_of": "2026-11-23T00:15:01Z",
+      "history_as_of": "2026-11-23T04:08:16Z",
       "history_source": "alchemy+rpc-receipts",
-      "observed_days": 668.1
+      "observed_days": 668.2
     },
     {
       "address": "0x331c9a4dd35feb0147e985ae7d378aaed141c427",
@@ -228,7 +228,6 @@
       "history_days": null,
       "status": "complete",
       "progress": 100,
-      "history_source": "alchemy+rpc-receipts",
       "series": {
         "sold": [
           0.0,
@@ -325,7 +324,6 @@
       ],
       "claim_count": 5,
       "claimed_total": 638020.42,
-      "observed_days": 551.9,
       "unreconciled_outflow": 0.0,
       "history_summary": {
         "transactions": 72,
@@ -410,7 +408,9 @@
           "amount": 1057.71788672
         }
       ],
-      "history_as_of": "2026-11-23T00:15:01Z"
+      "history_as_of": "2026-11-23T04:08:16Z",
+      "history_source": "alchemy+rpc-receipts",
+      "observed_days": 552.1
     },
     {
       "address": "0x021dcdeae23627d70ec710f793a0280d420d9c20",
@@ -560,9 +560,9 @@
           "amount": 99990.0
         }
       ],
-      "history_as_of": "2026-11-23T00:15:01Z",
+      "history_as_of": "2026-11-23T04:08:16Z",
       "history_source": "alchemy+rpc-receipts",
-      "observed_days": 125.1
+      "observed_days": 125.2
     },
     {
       "address": "0x0792b96ab761071a9ff00913a41f2a599040e2ba",
@@ -718,195 +718,7 @@
           "amount": 3141.76532342
         }
       ],
-      "history_as_of": "2026-11-23T00:15:01Z",
-      "history_source": "alchemy+rpc-receipts",
-      "observed_days": 668.1
-    },
-    {
-      "address": "0xd7f2b1fb64f6bc4f62164e6ca494057bdf96ebbb",
-      "initiated_amount": 25000.0,
-      "initiation_count": 1,
-      "history_start": "2025-01-23T19:12:09Z",
-      "history_days": null,
-      "status": "complete",
-      "progress": 100,
-      "series": {
-        "sold": [
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0
-        ],
-        "transferred": [
-          25000.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0
-        ],
-        "other_transfer": [
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0
-        ],
-        "restaked": [
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0
-        ],
-        "held": [
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0
-        ]
-      },
-      "claims": [
-        {
-          "claimed_at": "2026-11-01T02:32:51Z",
-          "tx": "0xc28ab6cb6d2470488a227cb9e916a1b8f4887d17ad33184d594df608db638079",
-          "claimed": 25000.0,
-          "sold": 0.0,
-          "transferred": 25000.0,
-          "other_transfer": 0.0,
-          "restaked": 0.0,
-          "held": 0.0
-        }
-      ],
-      "claim_count": 1,
-      "claimed_total": 25000.0,
-      "unreconciled_outflow": 0.0,
-      "history_summary": {
-        "transactions": 187,
-        "first_activity_at": "2025-01-23T19:12:09Z",
-        "last_activity_at": "2026-11-01T02:34:13Z",
-        "received_vvv": 557871.27938579,
-        "sent_vvv": 557871.27938579,
-        "staked_vvv": 291864.6954408,
-        "other_staking_payments": 199288.61832281
-      },
-      "recent_activity": [
-        {
-          "at": "2026-06-18T16:18:57Z",
-          "tx": "0x9656875a377386b1ffbc2e7f2663fe32442b338d489cb4f145532788e2391c9c",
-          "action": "Staked VVV",
-          "amount": 4318.39412174
-        },
-        {
-          "at": "2026-06-18T16:18:57Z",
-          "tx": "0x9656875a377386b1ffbc2e7f2663fe32442b338d489cb4f145532788e2391c9c",
-          "action": "Other staking payment",
-          "amount": 0.08444489
-        },
-        {
-          "at": "2026-06-22T22:04:01Z",
-          "tx": "0x2b679195a06dfebbbbfa68ba28d4e4617d007eef20116f3ab0f225bc7f0a31ca",
-          "action": "Staked VVV",
-          "amount": 334.62885781
-        },
-        {
-          "at": "2026-06-22T22:04:01Z",
-          "tx": "0x2b679195a06dfebbbbfa68ba28d4e4617d007eef20116f3ab0f225bc7f0a31ca",
-          "action": "Other staking payment",
-          "amount": 334.62885781
-        },
-        {
-          "at": "2026-07-10T14:47:03Z",
-          "tx": "0xcf9bd928d28a72b1027fd8e3ded347fca8dee568dcf571a599db055026a58aa7",
-          "action": "Staked VVV",
-          "amount": 1211.52628408
-        },
-        {
-          "at": "2026-07-10T14:47:03Z",
-          "tx": "0xcf9bd928d28a72b1027fd8e3ded347fca8dee568dcf571a599db055026a58aa7",
-          "action": "Other staking payment",
-          "amount": 1211.52628408
-        },
-        {
-          "at": "2026-08-08T17:59:45Z",
-          "tx": "0xc421224b2c6e792498098ddec9b912035a741f6a37d7213a8b2bfa799c74a2f4",
-          "action": "Staked VVV",
-          "amount": 1668.4442959
-        },
-        {
-          "at": "2026-08-08T17:59:45Z",
-          "tx": "0xc421224b2c6e792498098ddec9b912035a741f6a37d7213a8b2bfa799c74a2f4",
-          "action": "Other staking payment",
-          "amount": 1668.4442959
-        },
-        {
-          "at": "2026-08-08T18:14:37Z",
-          "tx": "0x48b1d2445baf2b69b3b9d1024b7aae9644898f0cd29a0130461ed5ce331fccc6",
-          "action": "Other staking payment",
-          "amount": 0.58909381
-        },
-        {
-          "at": "2026-08-27T23:19:11Z",
-          "tx": "0x253ed6db8c6b89b4d476e5074d3c5ef9da71919ff97a1a8f153b1efbc82802e8",
-          "action": "Other staking payment",
-          "amount": 1208.62111196
-        },
-        {
-          "at": "2026-08-27T23:19:51Z",
-          "tx": "0x1599cc1c8c2c41f7cd7b410105f123a4a7f1014aaa2fc54b0f0cb3da0d8d132d",
-          "action": "Staked VVV",
-          "amount": 1209.29465067
-        },
-        {
-          "at": "2026-08-27T23:19:51Z",
-          "tx": "0x1599cc1c8c2c41f7cd7b410105f123a4a7f1014aaa2fc54b0f0cb3da0d8d132d",
-          "action": "Other staking payment",
-          "amount": 0.03115588
-        },
-        {
-          "at": "2026-09-26T15:53:41Z",
-          "tx": "0x7b7b42ac041d96ef4f2446b10f05d7d587e6182720cbe46b1e1ee09eb9e64a77",
-          "action": "Staked VVV",
-          "amount": 1740.77718604
-        },
-        {
-          "at": "2026-09-26T15:53:41Z",
-          "tx": "0x7b7b42ac041d96ef4f2446b10f05d7d587e6182720cbe46b1e1ee09eb9e64a77",
-          "action": "Other staking payment",
-          "amount": 1740.77718604
-        },
-        {
-          "at": "2026-10-24T03:11:25Z",
-          "tx": "0x3c37f1568aa2821d0c8b78400dddda5873dbcae8b6751aa2da9e8ddbfed7640d",
-          "action": "Other staking payment",
-          "amount": 1340.96991784
-        },
-        {
-          "at": "2026-11-01T02:32:51Z",
-          "tx": "0xc28ab6cb6d2470488a227cb9e916a1b8f4887d17ad33184d594df608db638079",
-          "action": "Verified unstake claim",
-          "amount": 25000.0
-        },
-        {
-          "at": "2026-11-01T02:33:15Z",
-          "tx": "0xd6f593ab51aaf280b82de1c4e1328aff00e589789267755ebf22d3e21071f0ae",
-          "action": "Other staking payment",
-          "amount": 338.07011372
-        },
-        {
-          "at": "2026-11-01T02:34:13Z",
-          "tx": "0x599330dd1c2a558e5b06d2826b15312d5a0671eeee3489ae1f9eee9b1b18b9d6",
-          "action": "Transferred VVV",
-          "amount": 26679.07118744
-        }
-      ],
-      "history_as_of": "2026-11-23T00:15:01Z",
+      "history_as_of": "2026-11-23T04:08:16Z",
       "history_source": "alchemy+rpc-receipts",
       "observed_days": 668.2
     },
@@ -1202,9 +1014,9 @@
           "amount": 0.65872731
         }
       ],
-      "history_as_of": "2026-11-23T00:15:01Z",
+      "history_as_of": "2026-11-23T04:08:16Z",
       "history_source": "alchemy+rpc-receipts",
-      "observed_days": 359.2
+      "observed_days": 359.4
     },
     {
       "address": "0x73756f71f69797997b0ca9f23f9ee127434954e1",
@@ -1394,9 +1206,173 @@
           "amount": 21029.41938185
         }
       ],
-      "history_as_of": "2026-11-23T00:15:01Z",
+      "history_as_of": "2026-11-23T04:08:16Z",
       "history_source": "alchemy+rpc-receipts",
-      "observed_days": 663.8
+      "observed_days": 664.0
+    },
+    {
+      "address": "0xe8d8bb57edf69e4daf806ba60bf2658c81eb91db",
+      "initiated_amount": 15805.83638692,
+      "initiation_count": 1,
+      "history_start": "2026-09-20T02:51:37Z",
+      "history_days": null,
+      "status": "complete",
+      "progress": 100,
+      "history_source": "alchemy+rpc-receipts",
+      "series": {
+        "sold": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "transferred": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "other_transfer": [
+          0.0,
+          15805.83638692,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "restaked": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "held": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "claims": [
+        {
+          "claimed_at": "2026-11-14T10:25:36Z",
+          "tx": "0xe0b205e1aab0d16ddd9dd80489d47ebfef3bd50a2f2c6042b492621896c89d44",
+          "claimed": 15805.83638692,
+          "sold": 0.0,
+          "transferred": 0.0,
+          "other_transfer": 15805.83638692,
+          "restaked": 0.0,
+          "held": 0.0
+        }
+      ],
+      "claim_count": 1,
+      "claimed_total": 15805.83638692,
+      "observed_days": 64.1,
+      "unreconciled_outflow": 0.0,
+      "history_summary": {
+        "transactions": 63,
+        "first_activity_at": "2026-09-20T02:51:37Z",
+        "last_activity_at": "2026-11-16T05:33:55Z",
+        "received_vvv": 34127.63028022,
+        "sent_vvv": 34127.63028022,
+        "staked_vvv": 15805.83638692,
+        "other_staking_payments": 95.74190867
+      },
+      "recent_activity": [
+        {
+          "at": "2026-10-08T17:30:45Z",
+          "tx": "0x468b8b952a1ba2e29a3c3d0f4913702ba81798c2fd23d3ed3f81ebead766d01e",
+          "action": "Received VVV",
+          "amount": 454.5896295
+        },
+        {
+          "at": "2026-10-08T17:31:21Z",
+          "tx": "0x62854b41c83e6c3e082e7fbf51beff1632003a2af0ebe442a2c86a94ed2bcda4",
+          "action": "Received VVV",
+          "amount": 454.12110296
+        },
+        {
+          "at": "2026-10-08T17:41:31Z",
+          "tx": "0x1d7c3beafe7fd11aa695d593a2c062554950cbd9f2fcbaf12ec3f9bb3f5bb2eb",
+          "action": "Received VVV",
+          "amount": 454.87199192
+        },
+        {
+          "at": "2026-10-08T17:42:05Z",
+          "tx": "0x4feeebda83f65e149b7897faab69cf6586c5c5c5692ceec97846b6cbc53bb16f",
+          "action": "Received VVV",
+          "amount": 455.94872863
+        },
+        {
+          "at": "2026-10-08T17:42:41Z",
+          "tx": "0x1ebe17809c1c851758fa4559eeb66adde37e8eba80b2e983d3bdad79280930c2",
+          "action": "Received VVV",
+          "amount": 455.16891283
+        },
+        {
+          "at": "2026-10-08T17:43:37Z",
+          "tx": "0x3fdcd4c719e37ef96e0355cc5759b23cb609ee2f8831bc722259027a4fbc52e9",
+          "action": "Staked VVV",
+          "amount": 3645.32513546
+        },
+        {
+          "at": "2026-10-08T17:43:37Z",
+          "tx": "0x3fdcd4c719e37ef96e0355cc5759b23cb609ee2f8831bc722259027a4fbc52e9",
+          "action": "Other staking payment",
+          "amount": 0.09007415
+        },
+        {
+          "at": "2026-11-01T12:07:15Z",
+          "tx": "0x4bd2b78725889a2da39b48f3ae64664a0344a89e0a44167df08e44b55dfc3860",
+          "action": "Staked VVV",
+          "amount": 61.23360514
+        },
+        {
+          "at": "2026-11-01T12:07:15Z",
+          "tx": "0x4bd2b78725889a2da39b48f3ae64664a0344a89e0a44167df08e44b55dfc3860",
+          "action": "Other staking payment",
+          "amount": 61.23360514
+        },
+        {
+          "at": "2026-11-07T08:11:16Z",
+          "tx": "0xe5d27c75b645ad7a0dbbf8aa3a2f53216989ecf2cf57db7fd6118e3a66ea4cb6",
+          "action": "Other staking payment",
+          "amount": 15.07431862
+        },
+        {
+          "at": "2026-11-07T08:11:29Z",
+          "tx": "0x479d86a63278ba8c1f3ed8ec28159e49b92631623b7b14a64b1e50ad27c3f1e5",
+          "action": "Other staking payment",
+          "amount": 0.00039444
+        },
+        {
+          "at": "2026-11-14T10:25:36Z",
+          "tx": "0xe0b205e1aab0d16ddd9dd80489d47ebfef3bd50a2f2c6042b492621896c89d44",
+          "action": "Verified unstake claim",
+          "amount": 15805.83638692
+        },
+        {
+          "at": "2026-11-15T05:03:15Z",
+          "tx": "0xc7da56ffbf3bd540736d7cf03b3a1e5db35b20097b2fdd1eb4c654d3f2bf59b4",
+          "action": "Received VVV",
+          "amount": 0.10685115
+        },
+        {
+          "at": "2026-11-16T05:33:55Z",
+          "tx": "0x446f1a947560496d49600fb651be306ec06fa2dbf5b3ac7e65d4836907d6d366",
+          "action": "Transferred VVV",
+          "amount": 15821.10802527
+        }
+      ],
+      "history_as_of": "2026-11-23T04:08:16Z"
     }
   ]
 }
