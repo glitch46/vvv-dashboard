@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "as_of": "2026-11-26T20:06:49Z",
+  "as_of": "2026-11-27T00:13:59Z",
   "ranking_days": 30,
   "history_days": null,
   "history_scope": "all",
@@ -103,9 +103,9 @@
           "amount": 52780.07181767
         }
       ],
-      "history_as_of": "2026-11-26T20:06:49Z",
+      "history_as_of": "2026-11-27T00:13:59Z",
       "history_source": "alchemy+rpc-receipts",
-      "observed_days": 306.9
+      "observed_days": 307.0
     },
     {
       "address": "0xa87597a0aad36554a1dec8a09cc4724d99e4d2f8",
@@ -303,9 +303,9 @@
           "amount": 1069.09943666
         }
       ],
-      "history_as_of": "2026-11-26T20:06:49Z",
+      "history_as_of": "2026-11-27T00:13:59Z",
       "history_source": "alchemy+rpc-receipts",
-      "observed_days": 671.9
+      "observed_days": 672.0
     },
     {
       "address": "0x331c9a4dd35feb0147e985ae7d378aaed141c427",
@@ -495,9 +495,9 @@
           "amount": 1057.71788672
         }
       ],
-      "history_as_of": "2026-11-26T20:06:49Z",
+      "history_as_of": "2026-11-27T00:13:59Z",
       "history_source": "alchemy+rpc-receipts",
-      "observed_days": 555.7
+      "observed_days": 555.9
     },
     {
       "address": "0x021dcdeae23627d70ec710f793a0280d420d9c20",
@@ -647,9 +647,9 @@
           "amount": 99990.0
         }
       ],
-      "history_as_of": "2026-11-26T20:06:49Z",
+      "history_as_of": "2026-11-27T00:13:59Z",
       "history_source": "alchemy+rpc-receipts",
-      "observed_days": 128.9
+      "observed_days": 129.1
     },
     {
       "address": "0x0792b96ab761071a9ff00913a41f2a599040e2ba",
@@ -829,9 +829,9 @@
           "amount": 3141.87441502
         }
       ],
-      "history_as_of": "2026-11-26T20:06:49Z",
+      "history_as_of": "2026-11-27T00:13:59Z",
       "history_source": "alchemy+rpc-receipts",
-      "observed_days": 671.9
+      "observed_days": 672.0
     },
     {
       "address": "0x0d61c442113b5c89a6f4ba184d79608d5e2cb06e",
@@ -1017,9 +1017,9 @@
           "amount": 0.00185475
         }
       ],
-      "history_as_of": "2026-11-26T20:06:49Z",
+      "history_as_of": "2026-11-27T00:13:59Z",
       "history_source": "alchemy+rpc-receipts",
-      "observed_days": 278.8
+      "observed_days": 279.0
     },
     {
       "address": "0x8dac92aaad999a6181488b8546bbfb540eddc9c3",
@@ -1319,9 +1319,9 @@
           "amount": 89.78629075
         }
       ],
-      "history_as_of": "2026-11-26T20:06:49Z",
+      "history_as_of": "2026-11-27T00:13:59Z",
       "history_source": "alchemy+rpc-receipts",
-      "observed_days": 363.0
+      "observed_days": 363.2
     }
   ]
 }
